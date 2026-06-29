@@ -496,6 +496,15 @@
       <div class="input-group">
         <input class="input-field" type="text" id="nuevoColabNombre" placeholder="Nombre completo">
       </div>
+      <div class="input-group">
+        <input class="input-field" type="text" id="nuevoColabCargo" placeholder="Cargo (ej: Ayudante de cocina)">
+      </div>
+      <div class="input-group">
+        <select class="select-field" id="nuevoColabRol">
+          <option value="colaborador">Colaborador</option>
+          <option value="supervisor">Supervisor</option>
+        </select>
+      </div>
       <button class="btn btn-verde" onclick="agregarColab()">➕ Agregar</button>
     </div>
 
@@ -601,17 +610,92 @@
 
   <!-- ===================== PANEL ADMIN ===================== -->
   <div id="pantallaAdmin" class="card hidden">
-    <div class="card-title">📊 Informe — <span id="mesAdminLabel"></span></div>
+    <div class="card-title">🔑 Administrador — <span id="mesAdminLabel"></span></div>
+    <div class="tabs">
+      <div class="tab active" onclick="tabAdmin('informe')" id="tabAdminInforme">📊 Informe</div>
+      <div class="tab" onclick="tabAdmin('evaluar')" id="tabAdminEvaluar">⭐ Evaluar</div>
+      <div class="tab" onclick="tabAdmin('gestionar')" id="tabAdminGestionar">⚙️ Gestionar</div>
+    </div>
 
-    <div id="ganadorGlobal"></div>
-    <div id="menorGlobal"></div>
+    <!-- TAB INFORME -->
+    <div id="adminInforme">
+      <div id="ganadorGlobal"></div>
+      <div id="menorGlobal"></div>
+      <div class="divider"></div>
+      <div id="informePorFinca"></div>
+      <div class="divider"></div>
+      <button class="btn btn-verde" onclick="exportarInforme()">📥 Exportar informe</button>
+    </div>
+
+    <!-- TAB EVALUAR -->
+    <div id="adminEvaluar" class="hidden">
+      <div class="alerta alerta-info">Como administrador puedes evaluar colaboradores de cualquier finca.</div>
+      <div class="input-group mt-12">
+        <label class="input-label">Selecciona la finca a evaluar</label>
+        <select class="select-field" id="fincaAdminEval" onchange="cargarEvalAdmin()">
+          <option value="">-- Seleccionar finca --</option>
+          <option>Rosaprima 1</option>
+          <option>Rosaprima 2</option>
+          <option>Rosaprima 3</option>
+          <option>Rosaprima 4</option>
+          <option>Rosaprima 5</option>
+          <option>Rosaprima 6</option>
+          <option>Rosaprima 7</option>
+          <option>Florequisa</option>
+          <option>Tessa Picasso</option>
+          <option>Ponte Tressa</option>
+        </select>
+      </div>
+      <div id="evalAdminContainer"></div>
+      <div id="btnEnviarAdmin" class="hidden">
+        <button class="btn btn-verde mt-12" onclick="enviarVotosAdmin()">✅ Enviar evaluación</button>
+      </div>
+    </div>
+
+    <!-- TAB GESTIONAR -->
+    <div id="adminGestionar" class="hidden">
+      <div class="alerta alerta-info">Como administrador puedes modificar la lista de cualquier finca.</div>
+      <div class="input-group mt-12">
+        <label class="input-label">Selecciona la finca</label>
+        <select class="select-field" id="fincaAdminGest" onchange="cargarListaAdmin()">
+          <option value="">-- Seleccionar finca --</option>
+          <option>Rosaprima 1</option>
+          <option>Rosaprima 2</option>
+          <option>Rosaprima 3</option>
+          <option>Rosaprima 4</option>
+          <option>Rosaprima 5</option>
+          <option>Rosaprima 6</option>
+          <option>Rosaprima 7</option>
+          <option>Florequisa</option>
+          <option>Tessa Picasso</option>
+          <option>Ponte Tressa</option>
+        </select>
+      </div>
+      <div id="listaAdminGest" class="colab-list"></div>
+      <div id="formAgregarAdmin" class="hidden">
+        <div class="divider"></div>
+        <div class="paso-header">
+          <div class="paso-num">+</div>
+          <div class="paso-titulo">Agregar colaborador</div>
+        </div>
+        <div class="input-group">
+          <input class="input-field" type="text" id="adminNuevoNombre" placeholder="Nombre completo">
+        </div>
+        <div class="input-group">
+          <input class="input-field" type="text" id="adminNuevoCargo" placeholder="Cargo">
+        </div>
+        <div class="input-group">
+          <select class="select-field" id="adminNuevoRol">
+            <option value="colaborador">Colaborador</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+        </div>
+        <button class="btn btn-verde" onclick="agregarColabAdmin()">➕ Agregar</button>
+      </div>
+    </div>
 
     <div class="divider"></div>
-    <div id="informePorFinca"></div>
-
-    <div class="divider"></div>
-    <button class="btn btn-verde" onclick="exportarInforme()">📥 Exportar informe</button>
-    <button class="btn btn-outline mt-12" onclick="cerrarSesion()">← Cerrar sesión</button>
+    <button class="btn btn-outline" onclick="cerrarSesion()">← Cerrar sesión</button>
   </div>
 
 </div>
@@ -776,6 +860,7 @@ function renderListaSupervisor() {
     div.innerHTML = `
       <div>
         <div class="colab-name">${c.nombre}</div>
+        <div style="font-size:12px;color:var(--gris);margin-top:2px">${c.cargo || ''}</div>
         <span class="colab-badge ${badgeClass}">${badgeText}</span>
       </div>
       ${c.rol !== 'supervisor' && c.rol !== 'admin' ? `<button class="btn btn-sm btn-rojo" onclick="eliminarColab(${i})">🗑️</button>` : ''}
@@ -786,14 +871,17 @@ function renderListaSupervisor() {
 
 function agregarColab() {
   const nombre = document.getElementById('nuevoColabNombre').value.trim();
+  const cargo = document.getElementById('nuevoColabCargo').value.trim();
+  const rol = document.getElementById('nuevoColabRol').value;
   if (!nombre) { alert('Ingresa el nombre'); return; }
   const finca = estado.supervisorFinca;
   if (!estado.colaboradores[finca]) estado.colaboradores[finca] = [];
-  estado.colaboradores[finca].push({ nombre, rol: 'colaborador' });
+  estado.colaboradores[finca].push({ nombre, cargo, rol });
   guardarLocal();
   document.getElementById('nuevoColabNombre').value = '';
+  document.getElementById('nuevoColabCargo').value = '';
+  document.getElementById('nuevoColabRol').value = 'colaborador';
   renderListaSupervisor();
-  // Guardar en Apps Script
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
 
@@ -892,11 +980,24 @@ async function iniciarEvaluacion() {
   estado.votante = nombre;
   estado.votos = {};
 
-  const colabs = (estado.colaboradores[finca] || []).filter(c => c.nombre !== nombre);
+  const fincaColabs = estado.colaboradores[finca] || [];
+  const votanteObj = fincaColabs.find(c => c.nombre === nombre);
+  const esSuper = votanteObj && votanteObj.rol === 'supervisor';
+
+  // Solo se evalúan colaboradores (no supervisores), y no a sí mismo
+  const aEvaluar = fincaColabs.filter(c => c.rol === 'colaborador' && c.nombre !== nombre);
+
   const container = document.getElementById('evalContainer');
   container.innerHTML = '';
 
-  colabs.forEach(c => {
+  if (aEvaluar.length === 0) {
+    container.innerHTML = '<div class="alerta alerta-info">No hay colaboradores para evaluar en tu finca.</div>';
+    document.getElementById('votPasoNombre').classList.add('hidden');
+    document.getElementById('votPasoEval').classList.remove('hidden');
+    return;
+  }
+
+  aEvaluar.forEach(c => {
     const div = document.createElement('div');
     div.className = 'eval-persona';
     let params = '';
@@ -910,7 +1011,7 @@ async function iniciarEvaluacion() {
         </div>
       `;
     });
-    div.innerHTML = `<div class="eval-nombre">👤 ${c.nombre}</div>${params}`;
+    div.innerHTML = `<div class="eval-nombre">👤 ${c.nombre}${c.cargo ? ' <span style="font-size:12px;color:var(--gris)">— '+c.cargo+'</span>' : ''}</div>${params}`;
     container.appendChild(div);
     estado.votos[c.nombre] = {};
   });
@@ -934,9 +1035,10 @@ function selEstrella(nombreKey, paramIdx, valor) {
 function enviarVotos() {
   // Validar que todo esté completo
   const finca = estado.fincaActual;
-  const colabs = (estado.colaboradores[finca] || []).filter(c => c.nombre !== estado.votante);
+  const fincaColabs = estado.colaboradores[finca] || [];
+  const aEvaluar = fincaColabs.filter(c => c.rol === 'colaborador' && c.nombre !== estado.votante);
   let incompleto = false;
-  colabs.forEach(c => {
+  aEvaluar.forEach(c => {
     PARAMETROS.forEach((p, pi) => {
       if (!estado.votos[c.nombre] || estado.votos[c.nombre][pi] === undefined) {
         incompleto = true;
@@ -1086,8 +1188,126 @@ function renderInforme(resultados) {
   }
 }
 
-function exportarInforme() {
-  alert('Para exportar el informe completo se necesita conectar con Google Sheets. Contacta al administrador del sistema.');
+function tabAdmin(tab) {
+  ['informe','evaluar','gestionar'].forEach(t => {
+    document.getElementById('admin' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden');
+    document.getElementById('tabAdmin' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('active');
+  });
+  document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+  document.getElementById('tabAdmin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+async function cargarEvalAdmin() {
+  const finca = document.getElementById('fincaAdminEval').value;
+  if (!finca) return;
+  await cargarColabsDesdeSheet(finca);
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
+  const container = document.getElementById('evalAdminContainer');
+  container.innerHTML = '';
+  estado.votos = {};
+  estado.fincaActual = finca;
+  estado.votante = 'Administrador';
+
+  if (colabs.length === 0) {
+    container.innerHTML = '<div class="alerta alerta-info">No hay colaboradores en esta finca.</div>';
+    return;
+  }
+
+  colabs.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'eval-persona';
+    let params = '';
+    PARAMETROS.forEach((p, pi) => {
+      params += `
+        <div class="parametro">
+          <span class="param-label">${p}</span>
+          <div class="estrellas" id="adm_${c.nombre.replace(/\s/g,'_')}_${pi}">
+            ${[1,2,3,4,5].map(n => `<div class="estrella" onclick="selEstrellaAdmin('${c.nombre.replace(/\s/g,'_')}',${pi},${n})" data-val="${n}">${n}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    });
+    div.innerHTML = `<div class="eval-nombre">👤 ${c.nombre}${c.cargo ? ' <span style="font-size:12px;color:var(--gris)">— '+c.cargo+'</span>' : ''}</div>${params}`;
+    container.appendChild(div);
+    estado.votos[c.nombre] = {};
+  });
+  document.getElementById('btnEnviarAdmin').classList.remove('hidden');
+}
+
+function selEstrellaAdmin(nombreKey, paramIdx, valor) {
+  const nombre = nombreKey.replace(/_/g, ' ');
+  if (!estado.votos[nombre]) estado.votos[nombre] = {};
+  estado.votos[nombre][paramIdx] = valor;
+  const estrellas = document.querySelectorAll(`#adm_${nombreKey}_${paramIdx} .estrella`);
+  estrellas.forEach(e => {
+    e.classList.toggle('sel', parseInt(e.dataset.val) <= valor);
+  });
+}
+
+function enviarVotosAdmin() {
+  const finca = estado.fincaActual;
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
+  let incompleto = false;
+  colabs.forEach(c => {
+    PARAMETROS.forEach((p, pi) => {
+      if (!estado.votos[c.nombre] || estado.votos[c.nombre][pi] === undefined) incompleto = true;
+    });
+  });
+  if (incompleto) { alert('Por favor evalúa todos los parámetros'); return; }
+
+  enviarAlScript({ tipo: 'votos', finca, votante: 'Administrador', votos: estado.votos, fecha: new Date().toISOString() });
+  document.getElementById('evalAdminContainer').innerHTML = '<div class="alerta alerta-ok">✅ Evaluación enviada correctamente.</div>';
+  document.getElementById('btnEnviarAdmin').classList.add('hidden');
+  document.getElementById('fincaAdminEval').value = '';
+}
+
+function cargarListaAdmin() {
+  const finca = document.getElementById('fincaAdminGest').value;
+  if (!finca) return;
+  estado.supervisorFinca = finca;
+  const colabs = estado.colaboradores[finca] || [];
+  const container = document.getElementById('listaAdminGest');
+  container.innerHTML = '';
+  colabs.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'colab-item';
+    const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : 'badge-colab';
+    const badgeText = c.rol === 'supervisor' ? 'Supervisor' : 'Colaborador';
+    div.innerHTML = `
+      <div>
+        <div class="colab-name">${c.nombre}</div>
+        <div style="font-size:12px;color:var(--gris);margin-top:2px">${c.cargo || ''}</div>
+        <span class="colab-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <button class="btn btn-sm btn-rojo" onclick="eliminarColabAdmin(${i})">🗑️</button>
+    `;
+    container.appendChild(div);
+  });
+  document.getElementById('formAgregarAdmin').classList.remove('hidden');
+}
+
+function eliminarColabAdmin(idx) {
+  const finca = document.getElementById('fincaAdminGest').value;
+  if (!confirm('¿Eliminar a ' + estado.colaboradores[finca][idx].nombre + '?')) return;
+  estado.colaboradores[finca].splice(idx, 1);
+  guardarLocal();
+  cargarListaAdmin();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
+}
+
+function agregarColabAdmin() {
+  const finca = document.getElementById('fincaAdminGest').value;
+  const nombre = document.getElementById('adminNuevoNombre').value.trim();
+  const cargo = document.getElementById('adminNuevoCargo').value.trim();
+  const rol = document.getElementById('adminNuevoRol').value;
+  if (!nombre) { alert('Ingresa el nombre'); return; }
+  if (!estado.colaboradores[finca]) estado.colaboradores[finca] = [];
+  estado.colaboradores[finca].push({ nombre, cargo, rol });
+  guardarLocal();
+  document.getElementById('adminNuevoNombre').value = '';
+  document.getElementById('adminNuevoCargo').value = '';
+  cargarListaAdmin();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
 
 // ─────────────────────────────────────────────
@@ -1130,7 +1350,9 @@ async function verificarVotoServidor(finca, nombre) {
   }
 }
 
-// Cargar resultados desde Google Sheets para admin
+function exportarInforme() {
+  alert('Los resultados completos están disponibles en Google Sheets — hoja "Resultados".');
+}
 async function cargarResultadosDesdeSheet() {
   try {
     const url = SCRIPT_URL + '?action=resultados';
