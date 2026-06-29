@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colaborador del Mes — HANASKA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+  :root {
+    --verde: #1B6B45;
+    --verde-claro: #2E9E65;
+    --verde-suave: #E8F5EE;
+    --dorado: #C9A84C;
+    --dorado-claro: #F5E9C8;
+    --gris: #6B7280;
+    --gris-claro: #F3F4F6;
+    --blanco: #FFFFFF;
+    --texto: #1F2937;
+    --rojo: #DC2626;
+    --azul: #1B4F8A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0d3320 0%, #1B6B45 50%, #0d3320 100%);
+    min-height: 100vh;
+    color: var(--texto);
+  }
+
+  .app { max-width: 600px; margin: 0 auto; padding: 20px; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 30px 20px 20px;
+    color: white;
+  }
+  .header-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--dorado);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: white;
+    line-height: 1.2;
+  }
+  .header-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 6px;
+  }
+
+  /* CARD */
+  .card {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    margin-top: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--verde);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* BOTONES */
+  .btn {
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-verde {
+    background: var(--verde);
+    color: white;
+  }
+  .btn-verde:hover { background: var(--verde-claro); transform: translateY(-1px); }
+  .btn-dorado {
+    background: var(--dorado);
+    color: white;
+  }
+  .btn-dorado:hover { background: #b8973e; transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 2px solid var(--verde);
+    color: var(--verde);
+  }
+  .btn-outline:hover { background: var(--verde-suave); }
+  .btn-rojo {
+    background: var(--rojo);
+    color: white;
+  }
+  .btn-sm {
+    width: auto;
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* INPUTS */
+  .input-group { margin-bottom: 16px; }
+  .input-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gris);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .input-field {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #E5E7EB;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .input-field:focus { border-color: var(--verde); }
+
+  /* SELECT */
+  .select-field {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #E5E7EB;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    background: white;
+    cursor: pointer;
+    outline: none;
+  }
+  .select-field:focus { border-color: var(--verde); }
+
+  /* ROLES */
+  .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .role-btn {
+    padding: 20px 12px;
+    border: 2px solid #E5E7EB;
+    border-radius: 14px;
+    background: white;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .role-btn:hover { border-color: var(--verde); background: var(--verde-suave); }
+  .role-btn.active { border-color: var(--verde); background: var(--verde-suave); }
+  .role-icon { font-size: 28px; margin-bottom: 8px; }
+  .role-name { font-size: 13px; font-weight: 600; color: var(--texto); }
+
+  /* COLABORADORES LISTA */
+  .colab-list { margin: 16px 0; }
+  .colab-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--gris-claro);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .colab-name { font-size: 14px; font-weight: 500; }
+  .colab-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .badge-supervisor { background: var(--dorado-claro); color: #8B6914; }
+  .badge-admin { background: #DBEAFE; color: var(--azul); }
+  .badge-colab { background: var(--verde-suave); color: var(--verde); }
+
+  /* EVALUACIÓN */
+  .eval-persona {
+    background: var(--gris-claro);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .eval-nombre {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--texto);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #E5E7EB;
+  }
+  .parametro { margin-bottom: 16px; }
+  .param-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gris);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .estrellas { display: flex; gap: 6px; }
+  .estrella {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 2px solid #E5E7EB;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-weight: 700;
+    color: #9CA3AF;
+  }
+  .estrella:hover { border-color: var(--dorado); background: var(--dorado-claro); }
+  .estrella.sel { border-color: var(--dorado); background: var(--dorado); color: white; }
+
+  /* INFORME */
+  .informe-finca {
+    background: var(--gris-claro);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .informe-finca-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--verde);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ranking-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .ranking-pos {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .pos-1 { background: var(--dorado); color: white; }
+  .pos-2 { background: #C0C0C0; color: white; }
+  .pos-3 { background: #CD7F32; color: white; }
+  .pos-n { background: var(--gris-claro); color: var(--gris); }
+  .ranking-nombre { font-size: 14px; font-weight: 500; flex: 1; margin: 0 12px; }
+  .ranking-puntaje {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--verde);
+  }
+  .ganador-card {
+    background: linear-gradient(135deg, var(--dorado), #e8c06a);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    margin-bottom: 16px;
+  }
+  .ganador-emoji { font-size: 40px; margin-bottom: 8px; }
+  .ganador-label { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.8; }
+  .ganador-nombre { font-size: 22px; font-weight: 700; font-family: 'Playfair Display', serif; margin: 4px 0; }
+  .ganador-finca { font-size: 13px; opacity: 0.8; }
+  .menor-card {
+    background: linear-gradient(135deg, #6B7280, #9CA3AF);
+    border-radius: 14px;
+    padding: 16px 20px;
+    color: white;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  /* WHATSAPP LINK */
+  .wa-box {
+    background: #E7F9EF;
+    border: 2px solid #25D366;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .wa-label { font-size: 12px; font-weight: 600; color: #1a7f4b; margin-bottom: 8px; }
+  .wa-link {
+    font-size: 13px;
+    color: #1a7f4b;
+    word-break: break-all;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    display: block;
+    margin-bottom: 10px;
+    font-family: monospace;
+  }
+
+  /* PROGRESS */
+  .progress-bar {
+    height: 6px;
+    background: #E5E7EB;
+    border-radius: 3px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--verde);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  /* ALERTA */
+  .alerta {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .alerta-ok { background: var(--verde-suave); color: var(--verde); border: 1px solid #A7D9BE; }
+  .alerta-error { background: #FEE2E2; color: var(--rojo); border: 1px solid #FCA5A5; }
+  .alerta-info { background: #DBEAFE; color: var(--azul); border: 1px solid #93C5FD; }
+
+  .divider { height: 1px; background: #E5E7EB; margin: 20px 0; }
+  .text-center { text-align: center; }
+  .text-sm { font-size: 13px; color: var(--gris); }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .gap-8 { display: flex; flex-direction: column; gap: 8px; }
+
+  .hidden { display: none !important; }
+
+  /* TABS SUPERVISOR */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #E5E7EB;
+    border-radius: 10px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    color: var(--gris);
+  }
+  .tab.active { border-color: var(--verde); background: var(--verde-suave); color: var(--verde); }
+
+  .estado-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .chip-pendiente { background: #FEF3C7; color: #92400E; }
+  .chip-votado { background: var(--verde-suave); color: var(--verde); }
+
+  .paso-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .paso-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--verde);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .paso-titulo { font-size: 15px; font-weight: 700; color: var(--texto); }
+
+  @media (max-width: 480px) {
+    .app { padding: 12px; }
+    .card { padding: 20px; }
+    .roles-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">🌹 HANASKA CATERING</div>
+    <h1>Colaborador del Mes</h1>
+    <div class="header-sub" id="mesActual"></div>
+  </div>
+
+  <!-- ===================== PANTALLA INICIO ===================== -->
+  <div id="pantallaInicio" class="card">
+    <div class="card-title">⭐ ¿Cómo ingresas?</div>
+    <div class="roles-grid">
+      <div class="role-btn" onclick="seleccionarRol('supervisor')">
+        <div class="role-icon">👔</div>
+        <div class="role-name">Supervisor</div>
+      </div>
+      <div class="role-btn" onclick="seleccionarRol('colaborador')">
+        <div class="role-icon">👤</div>
+        <div class="role-name">Colaborador</div>
+      </div>
+      <div class="role-btn" onclick="seleccionarRol('admin')" style="grid-column: 1/-1;">
+        <div class="role-icon">🔑</div>
+        <div class="role-name">Administrador</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LOGIN SUPERVISOR ===================== -->
+  <div id="pantallaLoginSup" class="card hidden">
+    <div class="card-title">👔 Ingreso Supervisor</div>
+    <div class="input-group">
+      <label class="input-label">Selecciona tu finca</label>
+      <select class="select-field" id="fincaSup">
+        <option value="">-- Seleccionar finca --</option>
+        <option>Rosaprima 1</option>
+        <option>Rosaprima 2</option>
+        <option>Rosaprima 3</option>
+        <option>Rosaprima 4</option>
+        <option>Rosaprima 5</option>
+        <option>Rosaprima 6</option>
+        <option>Rosaprima 7</option>
+        <option>Florequisa</option>
+        <option>Tessa Picasso</option>
+        <option>Ponte Tressa</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Contraseña de supervisor</label>
+      <input class="input-field" type="password" id="passSup" placeholder="••••••">
+    </div>
+    <div id="errorLoginSup" class="alerta alerta-error hidden">Contraseña incorrecta</div>
+    <button class="btn btn-verde" onclick="loginSupervisor()">Ingresar</button>
+    <button class="btn btn-outline mt-12" onclick="mostrar('pantallaInicio')">← Volver</button>
+  </div>
+
+  <!-- ===================== PANEL SUPERVISOR ===================== -->
+  <div id="pantallaSuper" class="card hidden">
+    <div class="card-title">👔 Supervisor — <span id="fincaSupLabel"></span></div>
+    <div class="tabs">
+      <div class="tab active" onclick="tabSup('lista')" id="tabLista">📋 Lista</div>
+      <div class="tab" onclick="tabSup('link')" id="tabLink">🔗 Link</div>
+      <div class="tab" onclick="tabSup('estado')" id="tabEstado">📊 Estado</div>
+    </div>
+
+    <!-- TAB LISTA -->
+    <div id="supLista">
+      <div class="paso-header">
+        <div class="paso-num">1</div>
+        <div class="paso-titulo">Confirma el listado de tu equipo</div>
+      </div>
+      <div id="listaColabsSuper" class="colab-list"></div>
+      <div class="divider"></div>
+      <div class="paso-header">
+        <div class="paso-num">+</div>
+        <div class="paso-titulo">Agregar colaborador</div>
+      </div>
+      <div class="input-group">
+        <input class="input-field" type="text" id="nuevoColabNombre" placeholder="Nombre completo">
+      </div>
+      <button class="btn btn-verde" onclick="agregarColab()">➕ Agregar</button>
+    </div>
+
+    <!-- TAB LINK -->
+    <div id="supLink" class="hidden">
+      <div class="paso-header">
+        <div class="paso-num">2</div>
+        <div class="paso-titulo">Comparte el link de votación</div>
+      </div>
+      <div class="alerta alerta-info">📱 Envía este link a tu equipo por WhatsApp para que puedan votar.</div>
+      <div class="wa-box">
+        <div class="wa-label">🔗 Link de votación</div>
+        <span class="wa-link" id="linkVotacion"></span>
+        <button class="btn btn-sm btn-verde" onclick="copiarLink()">📋 Copiar link</button>
+      </div>
+      <button class="btn btn-dorado mt-12" onclick="abrirWhatsApp()">📲 Enviar por WhatsApp</button>
+    </div>
+
+    <!-- TAB ESTADO -->
+    <div id="supEstado" class="hidden">
+      <div class="paso-header">
+        <div class="paso-num">3</div>
+        <div class="paso-titulo">Estado de votaciones</div>
+      </div>
+      <div id="estadoVotaciones" class="colab-list"></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progresoBarra" style="width:0%"></div>
+      </div>
+      <div class="text-sm text-center" id="progresoTexto"></div>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-outline" onclick="cerrarSesion()">← Cerrar sesión</button>
+  </div>
+
+  <!-- ===================== VOTACIÓN COLABORADOR ===================== -->
+  <div id="pantallaVotacion" class="card hidden">
+    <div class="card-title">👤 Votación — <span id="fincaVotLabel"></span></div>
+
+    <!-- Paso 1: seleccionar finca -->
+    <div id="votPasoFinca">
+      <div class="input-group">
+        <label class="input-label">Selecciona tu finca</label>
+        <select class="select-field" id="fincaVot">
+          <option value="">-- Seleccionar finca --</option>
+          <option>Rosaprima 1</option>
+          <option>Rosaprima 2</option>
+          <option>Rosaprima 3</option>
+          <option>Rosaprima 4</option>
+          <option>Rosaprima 5</option>
+          <option>Rosaprima 6</option>
+          <option>Rosaprima 7</option>
+          <option>Florequisa</option>
+          <option>Tessa Picasso</option>
+          <option>Ponte Tressa</option>
+        </select>
+      </div>
+      <button class="btn btn-verde" onclick="seleccionarFincaVot()">Continuar →</button>
+      <button class="btn btn-outline mt-12" onclick="mostrar('pantallaInicio')">← Volver</button>
+    </div>
+
+    <!-- Paso 2: seleccionar nombre -->
+    <div id="votPasoNombre" class="hidden">
+      <div class="input-group">
+        <label class="input-label">¿Cuál es tu nombre?</label>
+        <select class="select-field" id="nombreVotante">
+          <option value="">-- Selecciona tu nombre --</option>
+        </select>
+      </div>
+      <div id="errorYaVoto" class="alerta alerta-error hidden">Ya registraste tu votación este mes.</div>
+      <button class="btn btn-verde" onclick="iniciarEvaluacion()">Comenzar evaluación →</button>
+      <button class="btn btn-outline mt-12" onclick="mostrar('votPasoFinca', true)">← Volver</button>
+    </div>
+
+    <!-- Paso 3: evaluación -->
+    <div id="votPasoEval" class="hidden">
+      <div class="alerta alerta-info" id="instruccionEval">Evalúa a cada compañero del 1 al 5 en cada parámetro.</div>
+      <div id="evalContainer"></div>
+      <button class="btn btn-verde mt-16" onclick="enviarVotos()">✅ Enviar evaluación</button>
+    </div>
+
+    <!-- Paso 4: gracias -->
+    <div id="votPasoGracias" class="hidden">
+      <div style="text-align:center; padding: 20px 0;">
+        <div style="font-size:60px; margin-bottom:16px;">🎉</div>
+        <div style="font-size:20px; font-weight:700; color:var(--verde); margin-bottom:8px;">¡Gracias por votar!</div>
+        <div class="text-sm">Tu evaluación fue registrada correctamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LOGIN ADMIN ===================== -->
+  <div id="pantallaLoginAdmin" class="card hidden">
+    <div class="card-title">🔑 Administrador</div>
+    <div class="input-group">
+      <label class="input-label">Contraseña de administrador</label>
+      <input class="input-field" type="password" id="passAdmin" placeholder="••••••">
+    </div>
+    <div id="errorLoginAdmin" class="alerta alerta-error hidden">Contraseña incorrecta</div>
+    <button class="btn btn-dorado" onclick="loginAdmin()">Ingresar</button>
+    <button class="btn btn-outline mt-12" onclick="mostrar('pantallaInicio')">← Volver</button>
+  </div>
+
+  <!-- ===================== PANEL ADMIN ===================== -->
+  <div id="pantallaAdmin" class="card hidden">
+    <div class="card-title">📊 Informe — <span id="mesAdminLabel"></span></div>
+
+    <div id="ganadorGlobal"></div>
+    <div id="menorGlobal"></div>
+
+    <div class="divider"></div>
+    <div id="informePorFinca"></div>
+
+    <div class="divider"></div>
+    <button class="btn btn-verde" onclick="exportarInforme()">📥 Exportar informe</button>
+    <button class="btn btn-outline mt-12" onclick="cerrarSesion()">← Cerrar sesión</button>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIGURACIÓN
+// ─────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJqxSN-SOUj5FWZ8ZBRc0xICe8cqn2kS--h_chV6RO9Ac-ZWKCpOBjcNuuNCALawAl/exec';
+const PASS_SUPERVISOR = 'sup2024';
+const PASS_ADMIN = 'admin2024';
+
+const FINCAS = [
+  'Rosaprima 1','Rosaprima 2','Rosaprima 3','Rosaprima 4',
+  'Rosaprima 5','Rosaprima 6','Rosaprima 7',
+  'Florequisa','Tessa Picasso','Ponte Tressa'
+];
+
+const PARAMETROS = [
+  'Puntualidad',
+  'Trabajo en equipo',
+  'Actitud y colaboración',
+  'Conocimiento de procesos',
+  'Servicio al cliente'
+];
+
+// Estado de la app en memoria
+let estado = {
+  fincaActual: '',
+  supervisorFinca: '',
+  votante: '',
+  votos: {},       // { evaluado: { param: puntaje } }
+  colaboradores: JSON.parse(localStorage.getItem('colaboradores') || '{}'),
+  votaciones: JSON.parse(localStorage.getItem('votaciones') || '{}'),
+  yaVotaron: JSON.parse(localStorage.getItem('yaVotaron') || '{}')
+};
+
+// ─────────────────────────────────────────────
+// INICIALIZACIÓN
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const hoy = new Date();
+  document.getElementById('mesActual').textContent = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+  document.getElementById('mesAdminLabel').textContent = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  // Inicializar colaboradores por defecto si no existen
+  FINCAS.forEach(f => {
+    if (!estado.colaboradores[f]) {
+      estado.colaboradores[f] = colabsDefecto(f);
+    }
+  });
+  guardarLocal();
+
+  // Verificar si viene de link de votación
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('finca')) {
+    const finca = decodeURIComponent(params.get('finca'));
+    document.getElementById('fincaVot').value = finca;
+    seleccionarFincaVot();
+    mostrar('pantallaVotacion');
+  }
+});
+
+function colabsDefecto(finca) {
+  // Colaboradores base (el supervisor se agrega por finca)
+  const base = {
+    'Rosaprima 1': [
+      { nombre: 'Alex Villamarín', rol: 'supervisor' },
+      { nombre: 'Colaborador R1-A', rol: 'colaborador' },
+      { nombre: 'Colaborador R1-B', rol: 'colaborador' }
+    ],
+    'Rosaprima 2': [
+      { nombre: 'Supervisor R2', rol: 'supervisor' },
+      { nombre: 'Colaborador R2-A', rol: 'colaborador' }
+    ]
+  };
+  return base[finca] || [{ nombre: 'Supervisor ' + finca, rol: 'supervisor' }];
+}
+
+function guardarLocal() {
+  localStorage.setItem('colaboradores', JSON.stringify(estado.colaboradores));
+  localStorage.setItem('votaciones', JSON.stringify(estado.votaciones));
+  localStorage.setItem('yaVotaron', JSON.stringify(estado.yaVotaron));
+}
+
+// ─────────────────────────────────────────────
+// NAVEGACIÓN
+// ─────────────────────────────────────────────
+const PANTALLAS = ['pantallaInicio','pantallaLoginSup','pantallaSuper',
+  'pantallaVotacion','pantallaLoginAdmin','pantallaAdmin'];
+
+function mostrar(id, esSub) {
+  if (!esSub) {
+    PANTALLAS.forEach(p => document.getElementById(p).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  } else {
+    // Mostrar sub-elemento dentro de pantalla actual
+    const parent = document.getElementById('pantallaVotacion');
+    ['votPasoFinca','votPasoNombre','votPasoEval','votPasoGracias'].forEach(s => {
+      document.getElementById(s).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+  }
+  window.scrollTo(0, 0);
+}
+
+function seleccionarRol(rol) {
+  if (rol === 'supervisor') mostrar('pantallaLoginSup');
+  if (rol === 'colaborador') mostrar('pantallaVotacion');
+  if (rol === 'admin') mostrar('pantallaLoginAdmin');
+}
+
+function cerrarSesion() {
+  mostrar('pantallaInicio');
+}
+
+// ─────────────────────────────────────────────
+// SUPERVISOR
+// ─────────────────────────────────────────────
+function loginSupervisor() {
+  const finca = document.getElementById('fincaSup').value;
+  const pass = document.getElementById('passSup').value;
+  if (!finca) { alert('Selecciona una finca'); return; }
+  if (pass !== PASS_SUPERVISOR) {
+    document.getElementById('errorLoginSup').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('errorLoginSup').classList.add('hidden');
+  estado.supervisorFinca = finca;
+  document.getElementById('fincaSupLabel').textContent = finca;
+  mostrar('pantallaSuper');
+  tabSup('lista');
+  renderListaSupervisor();
+  generarLinkFinca(finca);
+}
+
+function tabSup(tab) {
+  ['lista','link','estado'].forEach(t => {
+    document.getElementById('supLista').classList.add('hidden');
+    document.getElementById('supLink').classList.add('hidden');
+    document.getElementById('supEstado').classList.add('hidden');
+    document.getElementById('tabLista').classList.remove('active');
+    document.getElementById('tabLink').classList.remove('active');
+    document.getElementById('tabEstado').classList.remove('active');
+  });
+  document.getElementById('sup' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'estado') renderEstadoVotaciones();
+}
+
+function renderListaSupervisor() {
+  const finca = estado.supervisorFinca;
+  const colabs = estado.colaboradores[finca] || [];
+  const container = document.getElementById('listaColabsSuper');
+  container.innerHTML = '';
+  colabs.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'colab-item';
+    const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : c.rol === 'admin' ? 'badge-admin' : 'badge-colab';
+    const badgeText = c.rol === 'supervisor' ? 'Supervisor' : c.rol === 'admin' ? 'Admin' : 'Colaborador';
+    div.innerHTML = `
+      <div>
+        <div class="colab-name">${c.nombre}</div>
+        <span class="colab-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      ${c.rol !== 'supervisor' && c.rol !== 'admin' ? `<button class="btn btn-sm btn-rojo" onclick="eliminarColab(${i})">🗑️</button>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function agregarColab() {
+  const nombre = document.getElementById('nuevoColabNombre').value.trim();
+  if (!nombre) { alert('Ingresa el nombre'); return; }
+  const finca = estado.supervisorFinca;
+  if (!estado.colaboradores[finca]) estado.colaboradores[finca] = [];
+  estado.colaboradores[finca].push({ nombre, rol: 'colaborador' });
+  guardarLocal();
+  document.getElementById('nuevoColabNombre').value = '';
+  renderListaSupervisor();
+  // Guardar en Apps Script
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
+}
+
+function eliminarColab(idx) {
+  const finca = estado.supervisorFinca;
+  if (!confirm('¿Eliminar a ' + estado.colaboradores[finca][idx].nombre + '?')) return;
+  estado.colaboradores[finca].splice(idx, 1);
+  guardarLocal();
+  renderListaSupervisor();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
+}
+
+function generarLinkFinca(finca) {
+  const base = window.location.href.split('?')[0];
+  const link = base + '?finca=' + encodeURIComponent(finca);
+  document.getElementById('linkVotacion').textContent = link;
+}
+
+function copiarLink() {
+  const link = document.getElementById('linkVotacion').textContent;
+  navigator.clipboard.writeText(link).then(() => alert('Link copiado ✅'));
+}
+
+function abrirWhatsApp() {
+  const link = document.getElementById('linkVotacion').textContent;
+  const finca = estado.supervisorFinca;
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mes = meses[new Date().getMonth()];
+  const texto = `🌹 *HANASKA — Colaborador del Mes ${mes}*\n\nHola equipo *${finca}*! 👋\n\nPor favor ingresa al siguiente link y evalúa a tus compañeros. ¡Recuerda que no puedes evaluarte a ti mismo!\n\n🔗 ${link}\n\nGracias por participar 🙏`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
+function renderEstadoVotaciones() {
+  const finca = estado.supervisorFinca;
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
+  const yaVotaron = estado.yaVotaron[finca] || [];
+  const container = document.getElementById('estadoVotaciones');
+  container.innerHTML = '';
+  let votados = 0;
+  colabs.forEach(c => {
+    const voto = yaVotaron.includes(c.nombre);
+    if (voto) votados++;
+    const div = document.createElement('div');
+    div.className = 'colab-item';
+    div.innerHTML = `
+      <div class="colab-name">${c.nombre}</div>
+      <span class="estado-chip ${voto ? 'chip-votado' : 'chip-pendiente'}">${voto ? '✅ Votó' : '⏳ Pendiente'}</span>
+    `;
+    container.appendChild(div);
+  });
+  const pct = colabs.length > 0 ? Math.round((votados / colabs.length) * 100) : 0;
+  document.getElementById('progresoBarra').style.width = pct + '%';
+  document.getElementById('progresoTexto').textContent = `${votados} de ${colabs.length} colaboradores han votado (${pct}%)`;
+}
+
+// ─────────────────────────────────────────────
+// VOTACIÓN
+// ─────────────────────────────────────────────
+async function seleccionarFincaVot() {
+  const finca = document.getElementById('fincaVot').value;
+  if (!finca) { alert('Selecciona una finca'); return; }
+  estado.fincaActual = finca;
+  document.getElementById('fincaVotLabel').textContent = finca;
+
+  // Cargar colaboradores desde servidor
+  await cargarColabsDesdeSheet(finca);
+
+  const colabs = (estado.colaboradores[finca] || []);
+  const sel = document.getElementById('nombreVotante');
+  sel.innerHTML = '<option value="">-- Selecciona tu nombre --</option>';
+  colabs.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.nombre;
+    opt.textContent = c.nombre + (c.rol === 'supervisor' ? ' (Supervisor)' : c.rol === 'admin' ? ' (Admin)' : '');
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('votPasoFinca').classList.add('hidden');
+  document.getElementById('votPasoNombre').classList.remove('hidden');
+  document.getElementById('errorYaVoto').classList.add('hidden');
+}
+
+async function iniciarEvaluacion() {
+  const nombre = document.getElementById('nombreVotante').value;
+  if (!nombre) { alert('Selecciona tu nombre'); return; }
+
+  const finca = estado.fincaActual;
+
+  // Verificar en servidor si ya votó
+  const yaVoto = await verificarVotoServidor(finca, nombre);
+  if (yaVoto) {
+    document.getElementById('errorYaVoto').classList.remove('hidden');
+    return;
+  }
+
+  estado.votante = nombre;
+  estado.votos = {};
+
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.nombre !== nombre);
+  const container = document.getElementById('evalContainer');
+  container.innerHTML = '';
+
+  colabs.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'eval-persona';
+    let params = '';
+    PARAMETROS.forEach((p, pi) => {
+      params += `
+        <div class="parametro">
+          <span class="param-label">${p}</span>
+          <div class="estrellas" id="est_${c.nombre.replace(/\s/g,'_')}_${pi}">
+            ${[1,2,3,4,5].map(n => `<div class="estrella" onclick="selEstrella('${c.nombre.replace(/\s/g,'_')}',${pi},${n})" data-val="${n}">${n}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    });
+    div.innerHTML = `<div class="eval-nombre">👤 ${c.nombre}</div>${params}`;
+    container.appendChild(div);
+    estado.votos[c.nombre] = {};
+  });
+
+  document.getElementById('votPasoNombre').classList.add('hidden');
+  document.getElementById('votPasoEval').classList.remove('hidden');
+}
+
+function selEstrella(nombreKey, paramIdx, valor) {
+  const nombre = nombreKey.replace(/_/g, ' ');
+  if (!estado.votos[nombre]) estado.votos[nombre] = {};
+  estado.votos[nombre][paramIdx] = valor;
+
+  // Actualizar visual
+  const estrellas = document.querySelectorAll(`#est_${nombreKey}_${paramIdx} .estrella`);
+  estrellas.forEach(e => {
+    e.classList.toggle('sel', parseInt(e.dataset.val) <= valor);
+  });
+}
+
+function enviarVotos() {
+  // Validar que todo esté completo
+  const finca = estado.fincaActual;
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.nombre !== estado.votante);
+  let incompleto = false;
+  colabs.forEach(c => {
+    PARAMETROS.forEach((p, pi) => {
+      if (!estado.votos[c.nombre] || estado.votos[c.nombre][pi] === undefined) {
+        incompleto = true;
+      }
+    });
+  });
+  if (incompleto) { alert('Por favor evalúa todos los parámetros de todos los compañeros'); return; }
+
+  // Registrar votación
+  if (!estado.yaVotaron[finca]) estado.yaVotaron[finca] = [];
+  estado.yaVotaron[finca].push(estado.votante);
+
+  // Guardar votaciones
+  if (!estado.votaciones[finca]) estado.votaciones[finca] = [];
+  estado.votaciones[finca].push({
+    votante: estado.votante,
+    votos: estado.votos,
+    fecha: new Date().toISOString()
+  });
+  guardarLocal();
+
+  // Enviar al Apps Script
+  enviarAlScript({
+    tipo: 'votos',
+    finca,
+    votante: estado.votante,
+    votos: estado.votos,
+    fecha: new Date().toISOString()
+  });
+
+  document.getElementById('votPasoEval').classList.add('hidden');
+  document.getElementById('votPasoGracias').classList.remove('hidden');
+}
+
+// ─────────────────────────────────────────────
+// ADMINISTRADOR
+// ─────────────────────────────────────────────
+function loginAdmin() {
+  const pass = document.getElementById('passAdmin').value;
+  if (pass !== PASS_ADMIN) {
+    document.getElementById('errorLoginAdmin').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('errorLoginAdmin').classList.add('hidden');
+  mostrar('pantallaAdmin');
+  cargarInforme();
+}
+
+async function cargarInforme() {
+  document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">⏳ Cargando resultados...</div>';
+
+  // Intentar cargar desde servidor
+  const resultadosServidor = await cargarResultadosDesdeSheet();
+
+  if (resultadosServidor && resultadosServidor.length > 0) {
+    // Construir estructura para renderizar
+    const resultados = {};
+    resultadosServidor.forEach(r => {
+      if (!resultados[r.finca]) resultados[r.finca] = {};
+      resultados[r.finca][r.nombre] = { total: r.prom, count: 1 };
+    });
+    renderInforme(resultados);
+  } else {
+    // Usar datos locales
+    const resultados = {};
+    FINCAS.forEach(finca => {
+      resultados[finca] = {};
+      const votaciones = estado.votaciones[finca] || [];
+      votaciones.forEach(v => {
+        Object.keys(v.votos).forEach(evaluado => {
+          if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0 };
+          PARAMETROS.forEach((p, pi) => {
+            const val = v.votos[evaluado][pi] || 0;
+            resultados[finca][evaluado].total += val;
+            resultados[finca][evaluado].count++;
+          });
+        });
+      });
+    });
+    renderInforme(resultados);
+  }
+}
+
+function renderInforme(resultados) {
+  let mejorGlobal = { nombre: '', finca: '', prom: 0 };
+  let menorGlobal = { nombre: '', finca: '', prom: 999 };
+
+  const informeDiv = document.getElementById('informePorFinca');
+  informeDiv.innerHTML = '';
+
+  FINCAS.forEach(finca => {
+    const datos = resultados[finca];
+    if (!datos || Object.keys(datos).length === 0) return;
+
+    // Calcular promedios
+    const ranking = Object.keys(datos).map(nombre => {
+      const d = datos[nombre];
+      const prom = d.count > 0 ? (d.total / d.count).toFixed(2) : 0;
+      return { nombre, prom: parseFloat(prom) };
+    }).sort((a, b) => b.prom - a.prom);
+
+    if (ranking.length > 0) {
+      if (ranking[0].prom > mejorGlobal.prom) mejorGlobal = { nombre: ranking[0].nombre, finca, prom: ranking[0].prom };
+      if (ranking[ranking.length-1].prom < menorGlobal.prom) menorGlobal = { nombre: ranking[ranking.length-1].nombre, finca, prom: ranking[ranking.length-1].prom };
+    }
+
+    const div = document.createElement('div');
+    div.className = 'informe-finca';
+    div.innerHTML = `
+      <div class="informe-finca-title">🌹 ${finca}</div>
+      ${ranking.map((r, i) => `
+        <div class="ranking-item">
+          <div class="ranking-pos ${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'pos-n'}">${i+1}</div>
+          <div class="ranking-nombre">${r.nombre}</div>
+          <div class="ranking-puntaje">${r.prom} / 5</div>
+        </div>
+      `).join('')}
+    `;
+    informeDiv.appendChild(div);
+  });
+
+  // Ganador global
+  if (mejorGlobal.nombre) {
+    document.getElementById('ganadorGlobal').innerHTML = `
+      <div class="ganador-card">
+        <div class="ganador-emoji">🏆</div>
+        <div class="ganador-label">Colaborador del Mes</div>
+        <div class="ganador-nombre">${mejorGlobal.nombre}</div>
+        <div class="ganador-finca">${mejorGlobal.finca} — Promedio: ${mejorGlobal.prom} / 5</div>
+      </div>
+    `;
+  } else {
+    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
+  }
+
+  if (menorGlobal.nombre && menorGlobal.nombre !== mejorGlobal.nombre) {
+    document.getElementById('menorGlobal').innerHTML = `
+      <div class="menor-card">
+        <div style="font-size:32px">📉</div>
+        <div>
+          <div style="font-size:11px;opacity:0.7;letter-spacing:1px;text-transform:uppercase">Menor puntaje</div>
+          <div style="font-size:16px;font-weight:700">${menorGlobal.nombre}</div>
+          <div style="font-size:13px;opacity:0.8">${menorGlobal.finca} — Promedio: ${menorGlobal.prom} / 5</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function exportarInforme() {
+  alert('Para exportar el informe completo se necesita conectar con Google Sheets. Contacta al administrador del sistema.');
+}
+
+// ─────────────────────────────────────────────
+// ENVÍO A APPS SCRIPT
+// ─────────────────────────────────────────────
+function enviarAlScript(data) {
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(data)
+  }).catch(e => console.log('Error enviando:', e));
+}
+
+// Cargar colaboradores desde Google Sheets
+async function cargarColabsDesdeSheet(finca) {
+  try {
+    const url = SCRIPT_URL + '?action=colaboradores&finca=' + encodeURIComponent(finca);
+    const resp = await fetch(url);
+    const json = await resp.json();
+    if (json.colaboradores && json.colaboradores.length > 0) {
+      estado.colaboradores[finca] = json.colaboradores;
+      guardarLocal();
+    }
+  } catch(e) {
+    console.log('Usando datos locales:', e);
+  }
+}
+
+// Verificar voto en servidor
+async function verificarVotoServidor(finca, nombre) {
+  try {
+    const url = SCRIPT_URL + '?action=yaVoto&finca=' + encodeURIComponent(finca) + '&nombre=' + encodeURIComponent(nombre);
+    const resp = await fetch(url);
+    const json = await resp.json();
+    return json.yaVoto || false;
+  } catch(e) {
+    // Usar verificación local
+    const yaVotaron = estado.yaVotaron[finca] || [];
+    return yaVotaron.includes(nombre);
+  }
+}
+
+// Cargar resultados desde Google Sheets para admin
+async function cargarResultadosDesdeSheet() {
+  try {
+    const url = SCRIPT_URL + '?action=resultados';
+    const resp = await fetch(url);
+    const json = await resp.json();
+    return json.resultados || [];
+  } catch(e) {
+    return null;
+  }
+}
+</script>
+</body>
+</html>
