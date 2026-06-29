@@ -1281,6 +1281,11 @@ async function cargarEstadoGlobal() {
   container.innerHTML = '<div class="alerta alerta-info">⏳ Cargando estado...</div>';
 
   try {
+    // Cargar colaboradores de todas las fincas desde el servidor
+    for (const finca of FINCAS) {
+      await cargarColabsDesdeSheet(finca);
+    }
+
     const url = SCRIPT_URL + '?action=votantes';
     const resp = await fetch(url);
     const json = await resp.json();
@@ -1288,7 +1293,7 @@ async function cargarEstadoGlobal() {
 
     container.innerHTML = '';
 
-    // Agrupar por finca
+    // Agrupar votantes por finca
     const porFinca = {};
     votantes.forEach(v => {
       if (!porFinca[v.finca]) porFinca[v.finca] = [];
@@ -1296,16 +1301,18 @@ async function cargarEstadoGlobal() {
     });
 
     FINCAS.forEach(finca => {
-      // Incluir TODOS: colaboradores + supervisores
       const todos = (estado.colaboradores[finca] || []);
-      // Agregar Administrador como evaluador de esta finca si votó
       const votaron = porFinca[finca] || [];
-      
-      // Lista completa: colaboradores + supervisores + admin si aparece en votantes
+
+      // Construir lista completa uniendo lista registrada + votantes del sheet
       const listaMostrar = [...todos];
       votaron.forEach(nombre => {
-        if (!listaMostrar.find(c => c.nombre === nombre)) {
-          listaMostrar.push({ nombre, rol: 'admin' });
+        // Solo agregar si NO está ya en la lista registrada
+        const yaEsta = listaMostrar.find(c => 
+          c.nombre.toLowerCase().trim() === nombre.toLowerCase().trim()
+        );
+        if (!yaEsta) {
+          listaMostrar.push({ nombre, rol: 'colaborador' });
         }
       });
 
@@ -1320,7 +1327,10 @@ async function cargarEstadoGlobal() {
       div.style.marginBottom = '14px';
 
       const filas = listaMostrar.map(c => {
-        const voto = votaron.includes(c.nombre);
+        // Comparar ignorando tildes y espacios
+        const voto = votaron.some(v => 
+          v.toLowerCase().trim() === c.nombre.toLowerCase().trim()
+        );
         const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : c.rol === 'admin' ? 'badge-admin' : 'badge-colab';
         const badgeText = c.rol === 'supervisor' ? 'Supervisor' : c.rol === 'admin' ? 'Admin' : 'Colaborador';
         return `<div class="colab-item">
