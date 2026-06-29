@@ -797,8 +797,8 @@ let estado = {
   fincaActual: '',
   supervisorFinca: '',
   votante: '',
-  votos: {},       // { evaluado: { param: puntaje } }
-  colaboradores: JSON.parse(localStorage.getItem('colaboradores') || '{}'),
+  votos: {},
+  colaboradores: {}, // Siempre cargar desde servidor
   votaciones: JSON.parse(localStorage.getItem('votaciones') || '{}'),
   yaVotaron: JSON.parse(localStorage.getItem('yaVotaron') || '{}')
 };
@@ -834,19 +834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function colabsDefecto(finca) {
-  // Colaboradores base (el supervisor se agrega por finca)
-  const base = {
-    'Rosaprima 1': [
-      { nombre: 'Alex Villamarín', rol: 'supervisor' },
-      { nombre: 'Colaborador R1-A', rol: 'colaborador' },
-      { nombre: 'Colaborador R1-B', rol: 'colaborador' }
-    ],
-    'Rosaprima 2': [
-      { nombre: 'Supervisor R2', rol: 'supervisor' },
-      { nombre: 'Colaborador R2-A', rol: 'colaborador' }
-    ]
-  };
-  return base[finca] || [{ nombre: 'Supervisor ' + finca, rol: 'supervisor' }];
+  return []; // No crear colaboradores genéricos
 }
 
 function guardarLocal() {
