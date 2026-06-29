@@ -1281,7 +1281,6 @@ async function cargarEstadoGlobal() {
   container.innerHTML = '<div class="alerta alerta-info">⏳ Cargando estado...</div>';
 
   try {
-    // Obtener votantes desde el servidor
     const url = SCRIPT_URL + '?action=votantes';
     const resp = await fetch(url);
     const json = await resp.json();
@@ -1297,28 +1296,41 @@ async function cargarEstadoGlobal() {
     });
 
     FINCAS.forEach(finca => {
-      const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
+      // Incluir TODOS: colaboradores + supervisores
+      const todos = (estado.colaboradores[finca] || []);
+      // Agregar Administrador como evaluador de esta finca si votó
       const votaron = porFinca[finca] || [];
-      const total = colabs.length;
+      
+      // Lista completa: colaboradores + supervisores + admin si aparece en votantes
+      const listaMostrar = [...todos];
+      votaron.forEach(nombre => {
+        if (!listaMostrar.find(c => c.nombre === nombre)) {
+          listaMostrar.push({ nombre, rol: 'admin' });
+        }
+      });
+
+      const total = listaMostrar.length;
       const respondieron = votaron.length;
       const pct = total > 0 ? Math.round((respondieron / total) * 100) : 0;
+
+      if (total === 0) return;
 
       const div = document.createElement('div');
       div.className = 'informe-finca';
       div.style.marginBottom = '14px';
 
-      let filas = '';
-      if (colabs.length > 0) {
-        filas = colabs.map(c => {
-          const voto = votaron.includes(c.nombre);
-          return `<div class="colab-item">
+      const filas = listaMostrar.map(c => {
+        const voto = votaron.includes(c.nombre);
+        const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : c.rol === 'admin' ? 'badge-admin' : 'badge-colab';
+        const badgeText = c.rol === 'supervisor' ? 'Supervisor' : c.rol === 'admin' ? 'Admin' : 'Colaborador';
+        return `<div class="colab-item">
+          <div>
             <div class="colab-name">${c.nombre}</div>
-            <span class="estado-chip ${voto ? 'chip-votado' : 'chip-pendiente'}">${voto ? '✅ Votó' : '⏳ Pendiente'}</span>
-          </div>`;
-        }).join('');
-      } else {
-        filas = '<div class="text-sm" style="padding:8px">Sin colaboradores registrados</div>';
-      }
+            <span class="colab-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <span class="estado-chip ${voto ? 'chip-votado' : 'chip-pendiente'}">${voto ? '✅ Votó' : '⏳ Pendiente'}</span>
+        </div>`;
+      }).join('');
 
       div.innerHTML = `
         <div class="informe-finca-title">
@@ -1385,6 +1397,14 @@ async function cargarEvalAdmin() {
   const finca = document.getElementById('fincaAdminEval').value;
   if (!finca) return;
   await cargarColabsDesdeSheet(finca);
+
+  // Verificar si el admin ya votó en esta finca
+  const yaVoto = await verificarVotoServidor(finca, estado.votante);
+  if (yaVoto) {
+    document.getElementById('evalAdminContainer').innerHTML = '<div class="alerta alerta-ok">✅ Ya registraste tu evaluación para ' + finca + ' este mes.</div>';
+    document.getElementById('btnEnviarAdmin').classList.add('hidden');
+    return;
+  }
   const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
   const container = document.getElementById('evalAdminContainer');
   container.innerHTML = '';
