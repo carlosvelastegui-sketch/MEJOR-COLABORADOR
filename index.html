@@ -600,6 +600,10 @@
   <div id="pantallaLoginAdmin" class="card hidden">
     <div class="card-title">🔑 Administrador</div>
     <div class="input-group">
+      <label class="input-label">Tu nombre</label>
+      <input class="input-field" type="text" id="nombreAdmin" placeholder="Nombre completo">
+    </div>
+    <div class="input-group">
       <label class="input-label">Contraseña de administrador</label>
       <input class="input-field" type="password" id="passAdmin" placeholder="••••••">
     </div>
@@ -610,11 +614,12 @@
 
   <!-- ===================== PANEL ADMIN ===================== -->
   <div id="pantallaAdmin" class="card hidden">
-    <div class="card-title">🔑 Administrador — <span id="mesAdminLabel"></span></div>
+    <div class="card-title">🔑 <span id="adminNombreLabel"></span> — <span id="mesAdminLabel"></span></div>
     <div class="tabs">
       <div class="tab active" onclick="tabAdmin('informe')" id="tabAdminInforme">📊 Informe</div>
       <div class="tab" onclick="tabAdmin('evaluar')" id="tabAdminEvaluar">⭐ Evaluar</div>
       <div class="tab" onclick="tabAdmin('gestionar')" id="tabAdminGestionar">⚙️ Gestionar</div>
+      <div class="tab" onclick="tabAdmin('config')" id="tabAdminConfig">🔐 Claves</div>
     </div>
 
     <!-- TAB INFORME -->
@@ -694,6 +699,36 @@
       </div>
     </div>
 
+    <!-- TAB CLAVES -->
+    <div id="adminConfig" class="hidden">
+      <div class="alerta alerta-info">Cambia las contraseñas de acceso. Los cambios se guardan inmediatamente.</div>
+      <div class="divider"></div>
+
+      <div class="paso-header">
+        <div class="paso-num">1</div>
+        <div class="paso-titulo">Contraseña de Supervisores</div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Nueva contraseña supervisores</label>
+        <input class="input-field" type="text" id="nuevaPassSup" placeholder="Nueva contraseña">
+      </div>
+      <div id="passSupActual" class="text-sm" style="margin-bottom:12px;color:var(--gris)"></div>
+      <button class="btn btn-verde" onclick="cambiarPassSup()">💾 Guardar contraseña supervisores</button>
+
+      <div class="divider"></div>
+
+      <div class="paso-header">
+        <div class="paso-num">2</div>
+        <div class="paso-titulo">Contraseña de Administrador</div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Nueva contraseña administrador</label>
+        <input class="input-field" type="text" id="nuevaPassAdmin" placeholder="Nueva contraseña">
+      </div>
+      <div id="passAdminActual" class="text-sm" style="margin-bottom:12px;color:var(--gris)"></div>
+      <button class="btn btn-dorado" onclick="cambiarPassAdmin()">💾 Guardar contraseña administrador</button>
+    </div>
+
     <div class="divider"></div>
     <button class="btn btn-outline" onclick="cerrarSesion()">← Cerrar sesión</button>
   </div>
@@ -705,8 +740,10 @@
 // CONFIGURACIÓN
 // ─────────────────────────────────────────────
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJqxSN-SOUj5FWZ8ZBRc0xICe8cqn2kS--h_chV6RO9Ac-ZWKCpOBjcNuuNCALawAl/exec';
-const PASS_SUPERVISOR = 'sup2024';
-const PASS_ADMIN = 'admin2024';
+
+// Contraseñas dinámicas (se guardan en localStorage)
+let PASS_SUPERVISOR = localStorage.getItem('passSupervisor') || 'sup2024';
+let PASS_ADMIN = localStorage.getItem('passAdmin') || 'admin2024';
 
 const FINCAS = [
   'Rosaprima 1','Rosaprima 2','Rosaprima 3','Rosaprima 4',
@@ -1076,49 +1113,27 @@ function enviarVotos() {
 // ─────────────────────────────────────────────
 // ADMINISTRADOR
 // ─────────────────────────────────────────────
-function loginAdmin() {
-  const pass = document.getElementById('passAdmin').value;
-  if (pass !== PASS_ADMIN) {
-    document.getElementById('errorLoginAdmin').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('errorLoginAdmin').classList.add('hidden');
-  mostrar('pantallaAdmin');
-  cargarInforme();
-}
 
 async function cargarInforme() {
   document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">⏳ Cargando resultados...</div>';
 
-  // Intentar cargar desde servidor
-  const resultadosServidor = await cargarResultadosDesdeSheet();
+  // Leer votos directamente desde el Sheet
+  const votos = await cargarVotosDesdeSheet();
 
-  if (resultadosServidor && resultadosServidor.length > 0) {
-    // Construir estructura para renderizar
+  if (votos && votos.length > 0) {
+    // Construir promedios por finca y evaluado
     const resultados = {};
-    resultadosServidor.forEach(r => {
-      if (!resultados[r.finca]) resultados[r.finca] = {};
-      resultados[r.finca][r.nombre] = { total: r.prom, count: 1 };
+    votos.forEach(v => {
+      const finca = v.finca;
+      const evaluado = v.evaluado;
+      if (!resultados[finca]) resultados[finca] = {};
+      if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0 };
+      resultados[finca][evaluado].total += parseFloat(v.promedio) || 0;
+      resultados[finca][evaluado].count++;
     });
     renderInforme(resultados);
   } else {
-    // Usar datos locales
-    const resultados = {};
-    FINCAS.forEach(finca => {
-      resultados[finca] = {};
-      const votaciones = estado.votaciones[finca] || [];
-      votaciones.forEach(v => {
-        Object.keys(v.votos).forEach(evaluado => {
-          if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0 };
-          PARAMETROS.forEach((p, pi) => {
-            const val = v.votos[evaluado][pi] || 0;
-            resultados[finca][evaluado].total += val;
-            resultados[finca][evaluado].count++;
-          });
-        });
-      });
-    });
-    renderInforme(resultados);
+    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
   }
 }
 
@@ -1140,15 +1155,35 @@ function renderInforme(resultados) {
       return { nombre, prom: parseFloat(prom) };
     }).sort((a, b) => b.prom - a.prom);
 
-    if (ranking.length > 0) {
-      if (ranking[0].prom > mejorGlobal.prom) mejorGlobal = { nombre: ranking[0].nombre, finca, prom: ranking[0].prom };
-      if (ranking[ranking.length-1].prom < menorGlobal.prom) menorGlobal = { nombre: ranking[ranking.length-1].nombre, finca, prom: ranking[ranking.length-1].prom };
-    }
+    if (ranking.length === 0) return;
+
+    // Mejor y menor POR FINCA
+    const mejorFinca = ranking[0];
+    const menorFinca = ranking[ranking.length - 1];
 
     const div = document.createElement('div');
     div.className = 'informe-finca';
     div.innerHTML = `
       <div class="informe-finca-title">🌹 ${finca}</div>
+
+      <div class="ganador-card" style="margin-bottom:10px;padding:14px 16px;">
+        <div class="ganador-emoji" style="font-size:28px">🏆</div>
+        <div class="ganador-label">Mejor colaborador</div>
+        <div class="ganador-nombre" style="font-size:17px">${mejorFinca.nombre}</div>
+        <div class="ganador-finca">Promedio: ${mejorFinca.prom} / 5</div>
+      </div>
+
+      ${ranking.length > 1 ? `
+      <div class="menor-card" style="margin-bottom:10px">
+        <div style="font-size:24px">📉</div>
+        <div>
+          <div style="font-size:11px;opacity:0.7;letter-spacing:1px;text-transform:uppercase">Menor puntaje</div>
+          <div style="font-size:15px;font-weight:700">${menorFinca.nombre}</div>
+          <div style="font-size:12px;opacity:0.8">Promedio: ${menorFinca.prom} / 5</div>
+        </div>
+      </div>` : ''}
+
+      <div style="font-size:13px;font-weight:600;color:var(--gris);margin:10px 0 6px">Ranking completo</div>
       ${ranking.map((r, i) => `
         <div class="ranking-item">
           <div class="ranking-pos ${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'pos-n'}">${i+1}</div>
@@ -1160,41 +1195,63 @@ function renderInforme(resultados) {
     informeDiv.appendChild(div);
   });
 
-  // Ganador global
-  if (mejorGlobal.nombre) {
-    document.getElementById('ganadorGlobal').innerHTML = `
-      <div class="ganador-card">
-        <div class="ganador-emoji">🏆</div>
-        <div class="ganador-label">Colaborador del Mes</div>
-        <div class="ganador-nombre">${mejorGlobal.nombre}</div>
-        <div class="ganador-finca">${mejorGlobal.finca} — Promedio: ${mejorGlobal.prom} / 5</div>
-      </div>
-    `;
-  } else {
-    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
-  }
+  // Limpiar secciones globales (ya no se usan)
+  document.getElementById('ganadorGlobal').innerHTML = '';
+  document.getElementById('menorGlobal').innerHTML = '';
 
-  if (menorGlobal.nombre && menorGlobal.nombre !== mejorGlobal.nombre) {
-    document.getElementById('menorGlobal').innerHTML = `
-      <div class="menor-card">
-        <div style="font-size:32px">📉</div>
-        <div>
-          <div style="font-size:11px;opacity:0.7;letter-spacing:1px;text-transform:uppercase">Menor puntaje</div>
-          <div style="font-size:16px;font-weight:700">${menorGlobal.nombre}</div>
-          <div style="font-size:13px;opacity:0.8">${menorGlobal.finca} — Promedio: ${menorGlobal.prom} / 5</div>
-        </div>
-      </div>
-    `;
+  if (informeDiv.innerHTML === '') {
+    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
   }
 }
 
+function loginAdmin() {
+  const nombre = document.getElementById('nombreAdmin').value.trim();
+  const pass = document.getElementById('passAdmin').value;
+  if (!nombre) { alert('Ingresa tu nombre'); return; }
+  if (pass !== PASS_ADMIN) {
+    document.getElementById('errorLoginAdmin').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('errorLoginAdmin').classList.add('hidden');
+  estado.votante = nombre;
+  document.getElementById('adminNombreLabel').textContent = nombre;
+  mostrar('pantallaAdmin');
+  cargarInforme();
+}
+
 function tabAdmin(tab) {
-  ['informe','evaluar','gestionar'].forEach(t => {
+  ['informe','evaluar','gestionar','config'].forEach(t => {
     document.getElementById('admin' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden');
     document.getElementById('tabAdmin' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('active');
   });
   document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
   document.getElementById('tabAdmin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'config') mostrarClaveActuales();
+}
+
+function mostrarClaveActuales() {
+  document.getElementById('passSupActual').textContent = 'Contraseña actual: ' + PASS_SUPERVISOR;
+  document.getElementById('passAdminActual').textContent = 'Contraseña actual: ' + PASS_ADMIN;
+}
+
+function cambiarPassSup() {
+  const nueva = document.getElementById('nuevaPassSup').value.trim();
+  if (!nueva || nueva.length < 4) { alert('La contraseña debe tener al menos 4 caracteres'); return; }
+  PASS_SUPERVISOR = nueva;
+  localStorage.setItem('passSupervisor', nueva);
+  document.getElementById('nuevaPassSup').value = '';
+  mostrarClaveActuales();
+  alert('✅ Contraseña de supervisores actualizada correctamente');
+}
+
+function cambiarPassAdmin() {
+  const nueva = document.getElementById('nuevaPassAdmin').value.trim();
+  if (!nueva || nueva.length < 4) { alert('La contraseña debe tener al menos 4 caracteres'); return; }
+  PASS_ADMIN = nueva;
+  localStorage.setItem('passAdmin', nueva);
+  document.getElementById('nuevaPassAdmin').value = '';
+  mostrarClaveActuales();
+  alert('✅ Contraseña de administrador actualizada correctamente');
 }
 
 async function cargarEvalAdmin() {
@@ -1353,12 +1410,24 @@ async function verificarVotoServidor(finca, nombre) {
 function exportarInforme() {
   alert('Los resultados completos están disponibles en Google Sheets — hoja "Resultados".');
 }
+
 async function cargarResultadosDesdeSheet() {
   try {
     const url = SCRIPT_URL + '?action=resultados';
     const resp = await fetch(url);
     const json = await resp.json();
     return json.resultados || [];
+  } catch(e) {
+    return null;
+  }
+}
+
+async function cargarVotosDesdeSheet() {
+  try {
+    const url = SCRIPT_URL + '?action=votos';
+    const resp = await fetch(url);
+    const json = await resp.json();
+    return json.votos || [];
   } catch(e) {
     return null;
   }
