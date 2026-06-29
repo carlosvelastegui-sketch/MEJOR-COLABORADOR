@@ -1408,7 +1408,84 @@ async function verificarVotoServidor(finca, nombre) {
 }
 
 function exportarInforme() {
-  alert('Los resultados completos están disponibles en Google Sheets — hoja "Resultados".');
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const hoy = new Date();
+  const mes = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  const informeDiv = document.getElementById('informePorFinca');
+  if (!informeDiv || informeDiv.innerHTML.trim() === '') {
+    alert('No hay datos para exportar aún.');
+    return;
+  }
+
+  const ventana = window.open('', '_blank');
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Informe Colaborador del Mes — ${mes}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 30px; color: #1F2937; background: white; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1B6B45; padding-bottom: 20px; }
+        .header-logo { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: #C9A84C; margin-bottom: 6px; }
+        .header h1 { font-family: 'Playfair Display', serif; font-size: 26px; color: #1B6B45; margin: 0; }
+        .header-sub { font-size: 13px; color: #6B7280; margin-top: 4px; }
+        .finca-block { margin-bottom: 28px; page-break-inside: avoid; }
+        .finca-title { font-size: 15px; font-weight: 700; color: #1B6B45; background: #E8F5EE; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; }
+        .ganador { background: linear-gradient(135deg, #C9A84C, #e8c06a); border-radius: 10px; padding: 14px 18px; color: white; margin-bottom: 10px; }
+        .ganador-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.85; }
+        .ganador-nombre { font-size: 18px; font-weight: 700; margin: 2px 0; }
+        .ganador-prom { font-size: 13px; opacity: 0.85; }
+        .menor { background: #6B7280; border-radius: 10px; padding: 12px 18px; color: white; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+        .menor-info .label { font-size: 11px; text-transform: uppercase; opacity: 0.7; }
+        .menor-info .nombre { font-size: 15px; font-weight: 700; }
+        .menor-info .prom { font-size: 12px; opacity: 0.8; }
+        .ranking-title { font-size: 12px; font-weight: 600; color: #6B7280; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .ranking-item { display: flex; align-items: center; padding: 8px 12px; background: #F9FAFB; border-radius: 8px; margin-bottom: 5px; }
+        .pos { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+        .pos-1 { background: #C9A84C; color: white; }
+        .pos-2 { background: #C0C0C0; color: white; }
+        .pos-3 { background: #CD7F32; color: white; }
+        .pos-n { background: #E5E7EB; color: #6B7280; }
+        .nombre { flex: 1; margin: 0 12px; font-size: 13px; }
+        .puntaje { font-size: 13px; font-weight: 700; color: #1B6B45; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #9CA3AF; }
+        @media print { body { padding: 15px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="header-logo">🌹 HANASKA CATERING</div>
+        <h1>Colaborador del Mes</h1>
+        <div class="header-sub">${mes.charAt(0).toUpperCase() + mes.slice(1)}</div>
+      </div>
+      ${informeDiv.innerHTML
+        .replace(/class="informe-finca"/g, 'class="finca-block"')
+        .replace(/class="informe-finca-title"/g, 'class="finca-title"')
+        .replace(/class="ganador-card"[^>]*>/g, 'class="ganador">')
+        .replace(/class="ganador-emoji"[^>]*>.*?<\/div>/g, '')
+        .replace(/class="ganador-label"/g, 'class="ganador-label"')
+        .replace(/class="ganador-nombre"[^>]*>/g, 'class="ganador-nombre">')
+        .replace(/class="ganador-finca"/g, 'class="ganador-prom"')
+        .replace(/class="menor-card"/g, 'class="menor"')
+        .replace(/class="ranking-item"/g, 'class="ranking-item"')
+        .replace(/class="ranking-pos pos-1"/g, 'class="pos pos-1"')
+        .replace(/class="ranking-pos pos-2"/g, 'class="pos pos-2"')
+        .replace(/class="ranking-pos pos-3"/g, 'class="pos pos-3"')
+        .replace(/class="ranking-pos pos-n"/g, 'class="pos pos-n"')
+        .replace(/class="ranking-nombre"/g, 'class="nombre"')
+        .replace(/class="ranking-puntaje"/g, 'class="puntaje"')
+      }
+      <div class="footer">
+        Elaborado por: Ing. Carlos Velástegui — Administrador HANASKA CATERING ROSAPRIMA
+      </div>
+      <script>window.onload = function(){ window.print(); }<\/script>
+    </body>
+    </html>
+  `);
+  ventana.document.close();
 }
 
 async function cargarResultadosDesdeSheet() {
