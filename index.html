@@ -701,22 +701,16 @@
 
     <!-- TAB CLAVES -->
     <div id="adminConfig" class="hidden">
-      <div class="alerta alerta-info">Cambia las contraseñas de acceso. Los cambios se guardan inmediatamente.</div>
+      <div class="alerta alerta-info">Cambia las contraseñas de acceso por finca. Los cambios se guardan inmediatamente.</div>
       <div class="divider"></div>
 
       <div class="paso-header">
         <div class="paso-num">1</div>
-        <div class="paso-titulo">Contraseña de Supervisores</div>
+        <div class="paso-titulo">Contraseñas por finca</div>
       </div>
-      <div class="input-group">
-        <label class="input-label">Nueva contraseña supervisores</label>
-        <input class="input-field" type="text" id="nuevaPassSup" placeholder="Nueva contraseña">
-      </div>
-      <div id="passSupActual" class="text-sm" style="margin-bottom:12px;color:var(--gris)"></div>
-      <button class="btn btn-verde" onclick="cambiarPassSup()">💾 Guardar contraseña supervisores</button>
+      <div id="listaClaveFincas" class="colab-list"></div>
 
       <div class="divider"></div>
-
       <div class="paso-header">
         <div class="paso-num">2</div>
         <div class="paso-titulo">Contraseña de Administrador</div>
@@ -741,9 +735,27 @@
 // ─────────────────────────────────────────────
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJqxSN-SOUj5FWZ8ZBRc0xICe8cqn2kS--h_chV6RO9Ac-ZWKCpOBjcNuuNCALawAl/exec';
 
-// Contraseñas dinámicas (se guardan en localStorage)
-let PASS_SUPERVISOR = localStorage.getItem('passSupervisor') || 'sup2024';
+// Contraseña admin dinámica
 let PASS_ADMIN = localStorage.getItem('passAdmin') || 'admin2024';
+
+// Claves por finca (el admin puede cambiarlas desde ⚙️ Claves)
+const PASS_FINCAS_DEFAULT = {
+  'Rosaprima 1': 'Rp1#2024',
+  'Rosaprima 2': 'Rp2#2024',
+  'Rosaprima 3': 'Rp3#2024',
+  'Rosaprima 4': 'Rp4#2024',
+  'Rosaprima 5': 'Rp5#2024',
+  'Rosaprima 6': 'Rp6#2024',
+  'Rosaprima 7': 'Rp7#2024',
+  'Florequisa':  'Flq#2024',
+  'Tessa Picasso': 'Tsp#2024',
+  'Ponte Tressa':  'Ptr#2024'
+};
+
+function getPassFincas() {
+  const guardadas = localStorage.getItem('passFincas');
+  return guardadas ? JSON.parse(guardadas) : PASS_FINCAS_DEFAULT;
+}
 
 const FINCAS = [
   'Rosaprima 1','Rosaprima 2','Rosaprima 3','Rosaprima 4',
@@ -857,7 +869,8 @@ function loginSupervisor() {
   const finca = document.getElementById('fincaSup').value;
   const pass = document.getElementById('passSup').value;
   if (!finca) { alert('Selecciona una finca'); return; }
-  if (pass !== PASS_SUPERVISOR) {
+  const claves = getPassFincas();
+  if (pass !== claves[finca]) {
     document.getElementById('errorLoginSup').classList.remove('hidden');
     return;
   }
@@ -1239,18 +1252,36 @@ function tabAdmin(tab) {
 }
 
 function mostrarClaveActuales() {
-  document.getElementById('passSupActual').textContent = 'Contraseña actual: ' + PASS_SUPERVISOR;
   document.getElementById('passAdminActual').textContent = 'Contraseña actual: ' + PASS_ADMIN;
+  const claves = getPassFincas();
+  const container = document.getElementById('listaClaveFincas');
+  container.innerHTML = '';
+  FINCAS.forEach(finca => {
+    const div = document.createElement('div');
+    div.className = 'colab-item';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'flex-start';
+    div.style.gap = '8px';
+    div.innerHTML = `
+      <div class="colab-name">${finca}</div>
+      <div style="display:flex;gap:8px;width:100%">
+        <input class="input-field" type="text" id="clave_${finca.replace(/\s/g,'_')}" 
+          value="${claves[finca]}" style="flex:1;padding:8px 12px;font-size:13px">
+        <button class="btn btn-sm btn-verde" onclick="cambiarClaveFinca('${finca}')">💾</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
 }
 
-function cambiarPassSup() {
-  const nueva = document.getElementById('nuevaPassSup').value.trim();
+function cambiarClaveFinca(finca) {
+  const input = document.getElementById('clave_' + finca.replace(/\s/g,'_'));
+  const nueva = input.value.trim();
   if (!nueva || nueva.length < 4) { alert('La contraseña debe tener al menos 4 caracteres'); return; }
-  PASS_SUPERVISOR = nueva;
-  localStorage.setItem('passSupervisor', nueva);
-  document.getElementById('nuevaPassSup').value = '';
-  mostrarClaveActuales();
-  alert('✅ Contraseña de supervisores actualizada correctamente');
+  const claves = getPassFincas();
+  claves[finca] = nueva;
+  localStorage.setItem('passFincas', JSON.stringify(claves));
+  alert('✅ Clave de ' + finca + ' actualizada');
 }
 
 function cambiarPassAdmin() {
