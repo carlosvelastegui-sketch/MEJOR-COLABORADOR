@@ -1138,8 +1138,8 @@ async function cargarInforme() {
 }
 
 function renderInforme(resultados) {
-  let mejorGlobal = { nombre: '', finca: '', prom: 0 };
-  let menorGlobal = { nombre: '', finca: '', prom: 999 };
+  // Guardar para uso en exportarInforme
+  window._resultadosActuales = resultados;
 
   const informeDiv = document.getElementById('informePorFinca');
   informeDiv.innerHTML = '';
@@ -1408,9 +1408,117 @@ async function verificarVotoServidor(finca, nombre) {
 }
 
 function exportarInforme() {
-  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy = new Date();
   const mes = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+
+  // Recopilar datos del informe actual
+  const fincasConDatos = [];
+  FINCAS.forEach(finca => {
+    const datos = window._resultadosActuales && window._resultadosActuales[finca];
+    if (!datos || Object.keys(datos).length === 0) return;
+    const ranking = Object.keys(datos).map(nombre => ({
+      nombre,
+      prom: parseFloat((datos[nombre].total / datos[nombre].count).toFixed(2))
+    })).sort((a,b) => b.prom - a.prom);
+    if (ranking.length > 0) fincasConDatos.push({ finca, ranking });
+  });
+
+  if (fincasConDatos.length === 0) {
+    alert('No hay datos para exportar aún.');
+    return;
+  }
+
+  const filasTabla = fincasConDatos.map(f => {
+    const mejor = f.ranking[0];
+    const menor = f.ranking[f.ranking.length - 1];
+    const rankingHTML = f.ranking.map((r, i) =>
+      `<tr style="background:${i===0?'#FEF9E7':i%2===0?'#F9FAFB':'white'}">
+        <td style="padding:5px 10px;text-align:center;font-weight:700;color:${i===0?'#C9A84C':i===1?'#9CA3AF':i===2?'#CD7F32':'#6B7280'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td style="padding:5px 10px">${r.nombre}</td>
+        <td style="padding:5px 10px;text-align:center;font-weight:700;color:#1B6B45">${r.prom}</td>
+      </tr>`
+    ).join('');
+
+    return `
+      <div style="margin-bottom:20px;page-break-inside:avoid">
+        <div style="background:#1B6B45;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:14px;font-weight:700">
+          🌹 ${f.finca}
+        </div>
+        <div style="display:flex;gap:10px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-top:none">
+          <div style="flex:1;background:linear-gradient(135deg,#C9A84C,#e8c06a);border-radius:8px;padding:12px;color:white;text-align:center">
+            <div style="font-size:10px;letter-spacing:2px;opacity:0.85;text-transform:uppercase">🏆 Mejor colaborador</div>
+            <div style="font-size:16px;font-weight:700;margin:4px 0">${mejor.nombre}</div>
+            <div style="font-size:12px;opacity:0.85">Promedio: ${mejor.prom} / 5</div>
+          </div>
+          ${menor.nombre !== mejor.nombre ? `
+          <div style="flex:1;background:#6B7280;border-radius:8px;padding:12px;color:white;text-align:center">
+            <div style="font-size:10px;letter-spacing:2px;opacity:0.85;text-transform:uppercase">📉 Menor puntaje</div>
+            <div style="font-size:16px;font-weight:700;margin:4px 0">${menor.nombre}</div>
+            <div style="font-size:12px;opacity:0.85">Promedio: ${menor.prom} / 5</div>
+          </div>` : ''}
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+          <thead>
+            <tr style="background:#E8F5EE">
+              <th style="padding:6px 10px;text-align:center;font-size:12px;color:#1B6B45">#</th>
+              <th style="padding:6px 10px;text-align:left;font-size:12px;color:#1B6B45">Colaborador</th>
+              <th style="padding:6px 10px;text-align:center;font-size:12px;color:#1B6B45">Promedio</th>
+            </tr>
+          </thead>
+          <tbody>${rankingHTML}</tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  const ventana = window.open('', '_blank');
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Informe Colaborador del Mes — ${mes}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; color:#1F2937; background:white; padding:25px 30px; font-size:13px; }
+        @media print {
+          body { padding:15px 20px; }
+          @page { margin:10mm; size:A4; }
+        }
+      </style>
+    </head>
+    <body>
+      <!-- ENCABEZADO -->
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1B6B45;padding-bottom:14px;margin-bottom:20px">
+        <div>
+          <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
+          <div style="font-family:'Playfair Display',serif;font-size:24px;color:#1B6B45;font-weight:700">Colaborador del Mes</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">${mes} — Informe de evaluaciones por finca</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#9CA3AF">
+          <div>Generado: ${hoy.toLocaleDateString('es-EC')}</div>
+          <div style="margin-top:2px">Administrador: ${estado.votante || 'Carlos Velástegui'}</div>
+        </div>
+      </div>
+
+      <!-- FINCAS -->
+      <div style="columns:2;column-gap:16px">
+        ${filasTabla}
+      </div>
+
+      <!-- FOOTER -->
+      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:10px;color:#9CA3AF">
+        Elaborado por: Ing. Carlos Velástegui @7 — Administrador HANASKA CATERING ROSAPRIMA
+      </div>
+
+      <script>window.onload = function(){ window.print(); }<\/script>
+    </body>
+    </html>
+  `);
+  ventana.document.close();
+}
 
   const informeDiv = document.getElementById('informePorFinca');
   if (!informeDiv || informeDiv.innerHTML.trim() === '') {
