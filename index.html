@@ -1117,20 +1117,29 @@ function enviarVotos() {
 async function cargarInforme() {
   document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">⏳ Cargando resultados...</div>';
 
-  // Leer votos directamente desde el Sheet
   const votos = await cargarVotosDesdeSheet();
 
   if (votos && votos.length > 0) {
-    // Construir promedios por finca y evaluado
     const resultados = {};
     votos.forEach(v => {
       const finca = v.finca;
       const evaluado = v.evaluado;
       if (!resultados[finca]) resultados[finca] = {};
-      if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0 };
+      if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0, params: {} };
+
+      // Guardar promedio general
       resultados[finca][evaluado].total += parseFloat(v.promedio) || 0;
       resultados[finca][evaluado].count++;
+
+      // Guardar por parámetro
+      const vals = [v.puntualidad, v.trabajoEquipo, v.actitud, v.conocimiento, v.servicio];
+      vals.forEach((val, pi) => {
+        if (!resultados[finca][evaluado].params[pi]) resultados[finca][evaluado].params[pi] = { total: 0, count: 0 };
+        resultados[finca][evaluado].params[pi].total += parseFloat(val) || 0;
+        resultados[finca][evaluado].params[pi].count++;
+      });
     });
+    window._resultadosActuales = resultados;
     renderInforme(resultados);
   } else {
     document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
@@ -1411,62 +1420,77 @@ function exportarInforme() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy = new Date();
   const mes = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+  const datos = window._resultadosActuales;
 
-  // Recopilar datos del informe actual
-  const fincasConDatos = [];
-  FINCAS.forEach(finca => {
-    const datos = window._resultadosActuales && window._resultadosActuales[finca];
-    if (!datos || Object.keys(datos).length === 0) return;
-    const ranking = Object.keys(datos).map(nombre => ({
-      nombre,
-      prom: parseFloat((datos[nombre].total / datos[nombre].count).toFixed(2))
-    })).sort((a,b) => b.prom - a.prom);
-    if (ranking.length > 0) fincasConDatos.push({ finca, ranking });
-  });
-
-  if (fincasConDatos.length === 0) {
+  if (!datos || Object.keys(datos).length === 0) {
     alert('No hay datos para exportar aún.');
     return;
   }
 
-  const filasTabla = fincasConDatos.map(f => {
-    const mejor = f.ranking[0];
-    const menor = f.ranking[f.ranking.length - 1];
-    const rankingHTML = f.ranking.map((r, i) =>
-      `<tr style="background:${i===0?'#FEF9E7':i%2===0?'#F9FAFB':'white'}">
-        <td style="padding:5px 10px;text-align:center;font-weight:700;color:${i===0?'#C9A84C':i===1?'#9CA3AF':i===2?'#CD7F32':'#6B7280'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
-        <td style="padding:5px 10px">${r.nombre}</td>
-        <td style="padding:5px 10px;text-align:center;font-weight:700;color:#1B6B45">${r.prom}</td>
-      </tr>`
-    ).join('');
+  const fincasHTML = FINCAS.map(finca => {
+    const colabs = datos[finca];
+    if (!colabs || Object.keys(colabs).length === 0) return '';
+
+    // Calcular promedios por colaborador y parámetro
+    const ranking = Object.keys(colabs).map(nombre => {
+      const d = colabs[nombre];
+      const params = PARAMETROS.map((p, pi) => {
+        const val = d.params && d.params[pi] ? (d.params[pi].total / d.params[pi].count).toFixed(1) : '—';
+        return val;
+      });
+      const prom = d.count > 0 ? (d.total / d.count).toFixed(2) : 0;
+      return { nombre, params, prom: parseFloat(prom) };
+    }).sort((a, b) => b.prom - a.prom);
+
+    if (ranking.length === 0) return '';
+
+    const mejor = ranking[0];
+    const menor = ranking[ranking.length - 1];
+
+    const filas = ranking.map((r, i) => `
+      <tr style="background:${i===0?'#FEF9E7':i%2===0?'#F9FAFB':'white'}">
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:${i===0?'#C9A84C':i===1?'#9CA3AF':i===2?'#CD7F32':'#6B7280'};font-size:14px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td style="padding:5px 8px;font-weight:${i===0?'700':'400'}">${r.nombre}</td>
+        ${r.params.map(p => `<td style="padding:5px 8px;text-align:center;color:${parseFloat(p)>=4?'#1B6B45':parseFloat(p)<=2?'#DC2626':'#1F2937'};font-weight:600">${p}</td>`).join('')}
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:#1B6B45;background:#E8F5EE">${r.prom}</td>
+      </tr>
+    `).join('');
 
     return `
-      <div style="margin-bottom:20px;page-break-inside:avoid">
-        <div style="background:#1B6B45;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:14px;font-weight:700">
-          🌹 ${f.finca}
+      <div style="margin-bottom:24px;page-break-inside:avoid">
+        <div style="background:#1B6B45;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
+          <span>🌹 ${finca}</span>
+          <span style="font-size:11px;opacity:0.8">${ranking.length} colaboradores evaluados</span>
         </div>
-        <div style="display:flex;gap:10px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-top:none">
-          <div style="flex:1;background:linear-gradient(135deg,#C9A84C,#e8c06a);border-radius:8px;padding:12px;color:white;text-align:center">
-            <div style="font-size:10px;letter-spacing:2px;opacity:0.85;text-transform:uppercase">🏆 Mejor colaborador</div>
-            <div style="font-size:16px;font-weight:700;margin:4px 0">${mejor.nombre}</div>
-            <div style="font-size:12px;opacity:0.85">Promedio: ${mejor.prom} / 5</div>
+
+        <div style="display:flex;gap:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-top:none">
+          <div style="flex:1;background:linear-gradient(135deg,#C9A84C,#e8c06a);border-radius:8px;padding:10px;color:white;text-align:center">
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">🏆 Mejor colaborador</div>
+            <div style="font-size:14px;font-weight:700;margin:3px 0">${mejor.nombre}</div>
+            <div style="font-size:11px;opacity:0.85">Promedio: ${mejor.prom} / 5</div>
           </div>
           ${menor.nombre !== mejor.nombre ? `
-          <div style="flex:1;background:#6B7280;border-radius:8px;padding:12px;color:white;text-align:center">
-            <div style="font-size:10px;letter-spacing:2px;opacity:0.85;text-transform:uppercase">📉 Menor puntaje</div>
-            <div style="font-size:16px;font-weight:700;margin:4px 0">${menor.nombre}</div>
-            <div style="font-size:12px;opacity:0.85">Promedio: ${menor.prom} / 5</div>
+          <div style="flex:1;background:#6B7280;border-radius:8px;padding:10px;color:white;text-align:center">
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">📉 Menor puntaje</div>
+            <div style="font-size:14px;font-weight:700;margin:3px 0">${menor.nombre}</div>
+            <div style="font-size:11px;opacity:0.85">Promedio: ${menor.prom} / 5</div>
           </div>` : ''}
         </div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+
+        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;font-size:11px">
           <thead>
-            <tr style="background:#E8F5EE">
-              <th style="padding:6px 10px;text-align:center;font-size:12px;color:#1B6B45">#</th>
-              <th style="padding:6px 10px;text-align:left;font-size:12px;color:#1B6B45">Colaborador</th>
-              <th style="padding:6px 10px;text-align:center;font-size:12px;color:#1B6B45">Promedio</th>
+            <tr style="background:#2E7D5E;color:white">
+              <th style="padding:6px 8px;text-align:center">#</th>
+              <th style="padding:6px 8px;text-align:left">Colaborador</th>
+              <th style="padding:6px 8px;text-align:center">Puntualidad</th>
+              <th style="padding:6px 8px;text-align:center">Trabajo equipo</th>
+              <th style="padding:6px 8px;text-align:center">Actitud</th>
+              <th style="padding:6px 8px;text-align:center">Conocimiento</th>
+              <th style="padding:6px 8px;text-align:center">Servicio</th>
+              <th style="padding:6px 8px;text-align:center;background:#1B6B45">Promedio</th>
             </tr>
           </thead>
-          <tbody>${rankingHTML}</tbody>
+          <tbody>${filas}</tbody>
         </table>
       </div>
     `;
@@ -1482,37 +1506,34 @@ function exportarInforme() {
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; color:#1F2937; background:white; padding:25px 30px; font-size:13px; }
+        body { font-family:'Inter',sans-serif; color:#1F2937; background:white; padding:20px 25px; font-size:12px; }
         @media print {
-          body { padding:15px 20px; }
-          @page { margin:10mm; size:A4; }
+          body { padding:10px 15px; }
+          @page { margin:8mm; size:A4 landscape; }
         }
       </style>
     </head>
     <body>
-      <!-- ENCABEZADO -->
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1B6B45;padding-bottom:14px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1B6B45;padding-bottom:12px;margin-bottom:20px">
         <div>
-          <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
-          <div style="font-family:'Playfair Display',serif;font-size:24px;color:#1B6B45;font-weight:700">Colaborador del Mes</div>
-          <div style="font-size:12px;color:#6B7280;margin-top:2px">${mes} — Informe de evaluaciones por finca</div>
+          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#1B6B45;font-weight:700">Informe — Colaborador del Mes</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:2px">${mes} · Evaluación por parámetros</div>
         </div>
-        <div style="text-align:right;font-size:11px;color:#9CA3AF">
+        <div style="text-align:right;font-size:10px;color:#9CA3AF">
           <div>Generado: ${hoy.toLocaleDateString('es-EC')}</div>
           <div style="margin-top:2px">Administrador: ${estado.votante || 'Carlos Velástegui'}</div>
+          <div style="margin-top:6px;background:#E8F5EE;padding:4px 10px;border-radius:6px;color:#1B6B45;font-size:10px">
+            🟢 ≥4 Excelente &nbsp; 🟡 3 Regular &nbsp; 🔴 ≤2 Por mejorar
+          </div>
         </div>
       </div>
 
-      <!-- FINCAS -->
-      <div style="columns:2;column-gap:16px">
-        ${filasTabla}
-      </div>
+      ${fincasHTML}
 
-      <!-- FOOTER -->
-      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:10px;color:#9CA3AF">
+      <div style="margin-top:20px;padding-top:10px;border-top:1px solid #E5E7EB;text-align:center;font-size:10px;color:#9CA3AF">
         Elaborado por: Ing. Carlos Velástegui @7 — Administrador HANASKA CATERING ROSAPRIMA
       </div>
-
       <script>window.onload = function(){ window.print(); }<\/script>
     </body>
     </html>
