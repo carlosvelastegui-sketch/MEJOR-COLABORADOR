@@ -18,14 +18,16 @@
     --blanco: #FFFFFF;
     --texto: #1F2937;
     --rojo: #DC2626;
-    --azul: #1B4F8A;
+    --azul: #185FA5;
+    --azul-oscuro: #0F1C3F;
+    --azul-claro: #E6F1FB;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #0d3320 0%, #1B6B45 50%, #0d3320 100%);
+    background: linear-gradient(135deg, #051023 0%, #0F1C3F 50%, #051023 100%);
     min-height: 100vh;
     color: var(--texto);
   }
@@ -70,7 +72,7 @@
   .card-title {
     font-size: 16px;
     font-weight: 700;
-    color: var(--verde);
+    color: var(--azul-oscuro);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -90,10 +92,10 @@
     font-family: 'Inter', sans-serif;
   }
   .btn-verde {
-    background: var(--verde);
+    background: var(--azul-oscuro);
     color: white;
   }
-  .btn-verde:hover { background: var(--verde-claro); transform: translateY(-1px); }
+  .btn-verde:hover { background: var(--azul); transform: translateY(-1px); }
   .btn-dorado {
     background: var(--dorado);
     color: white;
@@ -101,10 +103,10 @@
   .btn-dorado:hover { background: #b8973e; transform: translateY(-1px); }
   .btn-outline {
     background: transparent;
-    border: 2px solid var(--verde);
-    color: var(--verde);
+    border: 2px solid var(--azul-oscuro);
+    color: var(--azul-oscuro);
   }
-  .btn-outline:hover { background: var(--verde-suave); }
+  .btn-outline:hover { background: var(--azul-claro); }
   .btn-rojo {
     background: var(--rojo);
     color: white;
@@ -135,7 +137,7 @@
     transition: border-color 0.2s;
     outline: none;
   }
-  .input-field:focus { border-color: var(--verde); }
+  .input-field:focus { border-color: var(--azul-oscuro); }
 
   /* SELECT */
   .select-field {
@@ -149,7 +151,7 @@
     cursor: pointer;
     outline: none;
   }
-  .select-field:focus { border-color: var(--verde); }
+  .select-field:focus { border-color: var(--azul-oscuro); }
 
   /* ROLES */
   .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
@@ -163,8 +165,8 @@
     transition: all 0.2s;
     font-family: 'Inter', sans-serif;
   }
-  .role-btn:hover { border-color: var(--verde); background: var(--verde-suave); }
-  .role-btn.active { border-color: var(--verde); background: var(--verde-suave); }
+  .role-btn:hover { border-color: var(--azul-oscuro); background: var(--azul-claro); }
+  .role-btn.active { border-color: var(--azul-oscuro); background: var(--azul-claro); }
   .role-icon { font-size: 28px; margin-bottom: 8px; }
   .role-name { font-size: 13px; font-weight: 600; color: var(--texto); }
 
@@ -242,7 +244,7 @@
   .informe-finca-title {
     font-size: 15px;
     font-weight: 700;
-    color: var(--verde);
+    color: var(--azul-oscuro);
     margin-bottom: 14px;
     display: flex;
     align-items: center;
@@ -373,7 +375,7 @@
     font-family: 'Inter', sans-serif;
     color: var(--gris);
   }
-  .tab.active { border-color: var(--verde); background: var(--verde-suave); color: var(--verde); }
+  .tab.active { border-color: var(--azul-oscuro); background: var(--azul-claro); color: var(--azul-oscuro); }
 
   .estado-chip {
     display: inline-flex;
@@ -397,7 +399,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: var(--verde);
+    background: var(--azul-oscuro);
     color: white;
     font-size: 13px;
     font-weight: 700;
@@ -451,16 +453,6 @@
       <label class="input-label">Selecciona tu finca</label>
       <select class="select-field" id="fincaSup">
         <option value="">-- Seleccionar finca --</option>
-        <option>Rosaprima 1</option>
-        <option>Rosaprima 2</option>
-        <option>Rosaprima 3</option>
-        <option>Rosaprima 4</option>
-        <option>Rosaprima 5</option>
-        <option>Rosaprima 6</option>
-        <option>Rosaprima 7</option>
-        <option>Florequisa</option>
-        <option>Tessa Picasso</option>
-        <option>Ponte Tressa</option>
       </select>
     </div>
     <div class="input-group">
@@ -500,6 +492,9 @@
         <input class="input-field" type="text" id="nuevoColabCargo" placeholder="Cargo (ej: Ayudante de cocina)">
       </div>
       <div class="input-group">
+        <input class="input-field" type="text" id="nuevoColabCedula" placeholder="Número de cédula / C.I." inputmode="numeric">
+      </div>
+      <div class="input-group">
         <select class="select-field" id="nuevoColabRol">
           <option value="colaborador">Colaborador</option>
           <option value="supervisor">Supervisor</option>
@@ -529,7 +524,9 @@
         <div class="paso-num">3</div>
         <div class="paso-titulo">Estado de votaciones</div>
       </div>
-      <div id="estadoVotaciones" class="colab-list"></div>
+      <div class="alerta alerta-info">Este listado se consulta en vivo desde el servidor, incluyendo los votos enviados desde el celular de cada colaborador.</div>
+      <button class="btn btn-outline btn-sm mt-12" onclick="renderEstadoVotaciones()">🔄 Actualizar</button>
+      <div id="estadoVotaciones" class="colab-list mt-12"></div>
       <div class="progress-bar">
         <div class="progress-fill" id="progresoBarra" style="width:0%"></div>
       </div>
@@ -550,16 +547,6 @@
         <label class="input-label">Selecciona tu finca</label>
         <select class="select-field" id="fincaVot">
           <option value="">-- Seleccionar finca --</option>
-          <option>Rosaprima 1</option>
-          <option>Rosaprima 2</option>
-          <option>Rosaprima 3</option>
-          <option>Rosaprima 4</option>
-          <option>Rosaprima 5</option>
-          <option>Rosaprima 6</option>
-          <option>Rosaprima 7</option>
-          <option>Florequisa</option>
-          <option>Tessa Picasso</option>
-          <option>Ponte Tressa</option>
         </select>
       </div>
       <button class="btn btn-verde" onclick="seleccionarFincaVot()">Continuar →</button>
@@ -574,6 +561,11 @@
           <option value="">-- Selecciona tu nombre --</option>
         </select>
       </div>
+      <div class="input-group">
+        <label class="input-label">Ingresa tu número de cédula / C.I.</label>
+        <input class="input-field" type="text" id="cedulaVotante" placeholder="Ej: 1712345678" inputmode="numeric">
+      </div>
+      <div id="errorCedula" class="alerta alerta-error hidden">Cédula incorrecta</div>
       <div id="errorYaVoto" class="alerta alerta-error hidden">Ya registraste tu votación este mes.</div>
       <button class="btn btn-verde" onclick="iniciarEvaluacion()">Comenzar evaluación →</button>
       <button class="btn btn-outline mt-12" onclick="mostrar('votPasoFinca', true)">← Volver</button>
@@ -646,16 +638,6 @@
         <label class="input-label">Selecciona la finca a evaluar</label>
         <select class="select-field" id="fincaAdminEval" onchange="cargarEvalAdmin()">
           <option value="">-- Seleccionar finca --</option>
-          <option>Rosaprima 1</option>
-          <option>Rosaprima 2</option>
-          <option>Rosaprima 3</option>
-          <option>Rosaprima 4</option>
-          <option>Rosaprima 5</option>
-          <option>Rosaprima 6</option>
-          <option>Rosaprima 7</option>
-          <option>Florequisa</option>
-          <option>Tessa Picasso</option>
-          <option>Ponte Tressa</option>
         </select>
       </div>
       <div id="evalAdminContainer"></div>
@@ -671,16 +653,6 @@
         <label class="input-label">Selecciona la finca</label>
         <select class="select-field" id="fincaAdminGest" onchange="cargarListaAdmin()">
           <option value="">-- Seleccionar finca --</option>
-          <option>Rosaprima 1</option>
-          <option>Rosaprima 2</option>
-          <option>Rosaprima 3</option>
-          <option>Rosaprima 4</option>
-          <option>Rosaprima 5</option>
-          <option>Rosaprima 6</option>
-          <option>Rosaprima 7</option>
-          <option>Florequisa</option>
-          <option>Tessa Picasso</option>
-          <option>Ponte Tressa</option>
         </select>
       </div>
       <div id="listaAdminGest" class="colab-list"></div>
@@ -697,6 +669,9 @@
           <input class="input-field" type="text" id="adminNuevoCargo" placeholder="Cargo">
         </div>
         <div class="input-group">
+          <input class="input-field" type="text" id="adminNuevoCedula" placeholder="Número de cédula / C.I." inputmode="numeric">
+        </div>
+        <div class="input-group">
           <select class="select-field" id="adminNuevoRol">
             <option value="colaborador">Colaborador</option>
             <option value="supervisor">Supervisor</option>
@@ -711,6 +686,20 @@
       <div class="alerta alerta-info">Cambia las contraseñas de acceso por finca. Los cambios se guardan inmediatamente.</div>
       <div class="divider"></div>
 
+      <div class="paso-header">
+        <div class="paso-num">+</div>
+        <div class="paso-titulo">Agregar nueva finca</div>
+      </div>
+      <div class="input-group">
+        <input class="input-field" type="text" id="nuevaFincaNombre" placeholder="Nombre de la finca (ej: Rosaprima 8)">
+      </div>
+      <div class="input-group" style="display:flex;gap:8px">
+        <input class="input-field" type="text" id="nuevaFincaPass" placeholder="Contraseña de supervisor" style="flex:1">
+        <button class="btn btn-sm btn-outline" onclick="generarClaveFinca()">🎲</button>
+      </div>
+      <button class="btn btn-verde" onclick="agregarFinca()">➕ Crear finca</button>
+
+      <div class="divider"></div>
       <div class="paso-header">
         <div class="paso-num">1</div>
         <div class="paso-titulo">Contraseñas por finca</div>
@@ -778,11 +767,21 @@ function getPassFincas() {
   return PASS_FINCAS;
 }
 
-const FINCAS = [
-  'Rosaprima 1','Rosaprima 2','Rosaprima 3','Rosaprima 4',
-  'Rosaprima 5','Rosaprima 6','Rosaprima 7',
-  'Florequisa','Tessa Picasso','Ponte Tressa'
-];
+// Lista de fincas: se recalcula desde las claves (cada finca = una clave).
+// Empieza con las 10 fincas originales y crece cuando el admin agrega nuevas.
+let FINCAS = Object.keys(PASS_FINCAS_DEFAULT);
+
+// Rellena los 4 selectores de finca de la app con la lista vigente de FINCAS.
+function poblarSelectsFinca() {
+  ['fincaSup', 'fincaVot', 'fincaAdminEval', 'fincaAdminGest'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const valorActual = sel.value;
+    sel.innerHTML = '<option value="">-- Seleccionar finca --</option>' +
+      FINCAS.map(f => `<option value="${f}">${f}</option>`).join('');
+    if (valorActual && FINCAS.includes(valorActual)) sel.value = valorActual;
+  });
+}
 
 const PARAMETROS = [
   'Puntualidad',
@@ -812,8 +811,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('mesActual').textContent = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
   document.getElementById('mesAdminLabel').textContent = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
 
-  // Cargar claves desde servidor
+  // Si el link trae ?finca=..., mostrar SOLO la pantalla de selección de nombre
+  // desde el primer instante (sin pasar por la pantalla de roles).
+  const params = new URLSearchParams(window.location.search);
+  const fincaParam = params.get('finca') ? decodeURIComponent(params.get('finca')) : null;
+  if (fincaParam) {
+    mostrar('pantallaVotacion');
+    document.getElementById('votPasoFinca').classList.add('hidden');
+    document.getElementById('votPasoNombre').classList.remove('hidden');
+    document.getElementById('nombreVotante').innerHTML = '<option value="">Cargando compañeros...</option>';
+  }
+
+  // Cargar claves desde servidor (esto define también la lista completa de fincas)
   await cargarClavesDesdeServidor();
+  FINCAS = Object.keys(PASS_FINCAS);
+  poblarSelectsFinca();
 
   // Inicializar colaboradores por defecto si no existen
   FINCAS.forEach(f => {
@@ -823,18 +835,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   guardarLocal();
 
-  // Verificar si viene de link de votación
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('finca')) {
-    const finca = decodeURIComponent(params.get('finca'));
-    document.getElementById('fincaVot').value = finca;
-    seleccionarFincaVot();
-    mostrar('pantallaVotacion');
+  if (fincaParam) {
+    document.getElementById('fincaVot').value = fincaParam;
+    await seleccionarFincaVot();
   }
 });
 
 function colabsDefecto(finca) {
   return []; // No crear colaboradores genéricos
+}
+
+// Valida que la cédula tenga solo dígitos y una longitud razonable (6 a 10 dígitos).
+function cedulaValida(c) {
+  const limpio = (c || '').replace(/\D/g, '');
+  return limpio.length >= 6 && limpio.length <= 10 ? limpio : null;
 }
 
 function guardarLocal() {
@@ -917,13 +931,20 @@ function renderListaSupervisor() {
   colabs.forEach((c, i) => {
     const div = document.createElement('div');
     div.className = 'colab-item';
+    div.style.flexWrap = 'wrap';
     const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : c.rol === 'admin' ? 'badge-admin' : 'badge-colab';
     const badgeText = c.rol === 'supervisor' ? 'Supervisor' : c.rol === 'admin' ? 'Admin' : 'Colaborador';
     div.innerHTML = `
-      <div>
+      <div style="flex:1;min-width:160px">
         <div class="colab-name">${c.nombre}</div>
         <div style="font-size:12px;color:var(--gris);margin-top:2px">${c.cargo || ''}</div>
         <span class="colab-badge ${badgeClass}">${badgeText}</span>
+        ${c.cedula
+          ? `<div style="font-size:12px;color:var(--gris);margin-top:4px">C.I.: ${c.cedula}</div>`
+          : `<div style="display:flex;gap:6px;margin-top:6px">
+               <input class="input-field" type="text" id="cedFix_${i}" placeholder="Falta C.I. — ingrésala" inputmode="numeric" style="flex:1;padding:6px 10px;font-size:12px">
+               <button class="btn btn-sm btn-verde" onclick="guardarCedula(${i})">💾</button>
+             </div>`}
       </div>
       ${c.rol !== 'supervisor' && c.rol !== 'admin' ? `<button class="btn btn-sm btn-rojo" onclick="eliminarColab(${i})">🗑️</button>` : ''}
     `;
@@ -934,14 +955,22 @@ function renderListaSupervisor() {
 function agregarColab() {
   const nombre = document.getElementById('nuevoColabNombre').value.trim();
   const cargo = document.getElementById('nuevoColabCargo').value.trim();
+  const cedulaInput = document.getElementById('nuevoColabCedula').value.trim();
   const rol = document.getElementById('nuevoColabRol').value;
   if (!nombre) { alert('Ingresa el nombre'); return; }
+  const cedula = cedulaValida(cedulaInput);
+  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
   const finca = estado.supervisorFinca;
   if (!estado.colaboradores[finca]) estado.colaboradores[finca] = [];
-  estado.colaboradores[finca].push({ nombre, cargo, rol });
+  if (estado.colaboradores[finca].some(c => c.cedula === cedula)) {
+    alert('Ya existe un colaborador registrado con esa cédula en esta finca');
+    return;
+  }
+  estado.colaboradores[finca].push({ nombre, cargo, rol, cedula });
   guardarLocal();
   document.getElementById('nuevoColabNombre').value = '';
   document.getElementById('nuevoColabCargo').value = '';
+  document.getElementById('nuevoColabCedula').value = '';
   document.getElementById('nuevoColabRol').value = 'colaborador';
   renderListaSupervisor();
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
@@ -951,6 +980,17 @@ function eliminarColab(idx) {
   const finca = estado.supervisorFinca;
   if (!confirm('¿Eliminar a ' + estado.colaboradores[finca][idx].nombre + '?')) return;
   estado.colaboradores[finca].splice(idx, 1);
+  guardarLocal();
+  renderListaSupervisor();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
+}
+
+function guardarCedula(idx) {
+  const finca = estado.supervisorFinca;
+  const input = document.getElementById('cedFix_' + idx);
+  const cedula = cedulaValida(input.value.trim());
+  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
+  estado.colaboradores[finca][idx].cedula = cedula;
   guardarLocal();
   renderListaSupervisor();
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
@@ -976,15 +1016,40 @@ function abrirWhatsApp() {
   window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
 }
 
-function renderEstadoVotaciones() {
+async function renderEstadoVotaciones() {
   const finca = estado.supervisorFinca;
-  const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
-  const yaVotaron = estado.yaVotaron[finca] || [];
   const container = document.getElementById('estadoVotaciones');
+  container.innerHTML = '<div class="alerta alerta-info">⏳ Cargando estado desde el servidor...</div>';
+
+  // Refrescar la lista de colaboradores por si el servidor tiene cambios
+  await cargarColabsDesdeSheet(finca);
+
+  let votaron = [];
+  try {
+    const url = SCRIPT_URL + '?action=votantes';
+    const resp = await fetch(url);
+    const json = await resp.json();
+    votaron = (json.votantes || [])
+      .filter(v => v.finca === finca)
+      .map(v => v.nombre);
+  } catch (e) {
+    // Si el servidor no responde, usar el respaldo local de este dispositivo
+    votaron = estado.yaVotaron[finca] || [];
+  }
+
+  const colabs = (estado.colaboradores[finca] || []).filter(c => c.rol === 'colaborador');
+
+  // Incluir también a quien votó pero ya no está en la lista actual de colaboradores
+  const listaMostrar = [...colabs];
+  votaron.forEach(nombre => {
+    const yaEsta = listaMostrar.find(c => c.nombre.toLowerCase().trim() === nombre.toLowerCase().trim());
+    if (!yaEsta) listaMostrar.push({ nombre, rol: 'colaborador' });
+  });
+
   container.innerHTML = '';
   let votados = 0;
-  colabs.forEach(c => {
-    const voto = yaVotaron.includes(c.nombre);
+  listaMostrar.forEach(c => {
+    const voto = votaron.some(v => v.toLowerCase().trim() === c.nombre.toLowerCase().trim());
     if (voto) votados++;
     const div = document.createElement('div');
     div.className = 'colab-item';
@@ -994,9 +1059,10 @@ function renderEstadoVotaciones() {
     `;
     container.appendChild(div);
   });
-  const pct = colabs.length > 0 ? Math.round((votados / colabs.length) * 100) : 0;
+  const total = listaMostrar.length;
+  const pct = total > 0 ? Math.round((votados / total) * 100) : 0;
   document.getElementById('progresoBarra').style.width = pct + '%';
-  document.getElementById('progresoTexto').textContent = `${votados} de ${colabs.length} colaboradores han votado (${pct}%)`;
+  document.getElementById('progresoTexto').textContent = `${votados} de ${total} colaboradores han votado (${pct}%)`;
 }
 
 // ─────────────────────────────────────────────
@@ -1024,13 +1090,37 @@ async function seleccionarFincaVot() {
   document.getElementById('votPasoFinca').classList.add('hidden');
   document.getElementById('votPasoNombre').classList.remove('hidden');
   document.getElementById('errorYaVoto').classList.add('hidden');
+  document.getElementById('errorCedula').classList.add('hidden');
+  document.getElementById('cedulaVotante').value = '';
 }
 
 async function iniciarEvaluacion() {
   const nombre = document.getElementById('nombreVotante').value;
   if (!nombre) { alert('Selecciona tu nombre'); return; }
 
+  const cedulaIngresada = cedulaValida(document.getElementById('cedulaVotante').value.trim());
+  const errorCedula = document.getElementById('errorCedula');
+  errorCedula.classList.add('hidden');
+
   const finca = estado.fincaActual;
+  const fincaColabs = estado.colaboradores[finca] || [];
+  const votanteObj = fincaColabs.find(c => c.nombre === nombre);
+
+  if (!cedulaIngresada) {
+    errorCedula.textContent = 'Ingresa un número de cédula válido (6 a 10 dígitos)';
+    errorCedula.classList.remove('hidden');
+    return;
+  }
+  if (!votanteObj || !votanteObj.cedula) {
+    errorCedula.textContent = 'Tu cédula no está registrada en el sistema. Pide a tu supervisor que la registre antes de poder votar.';
+    errorCedula.classList.remove('hidden');
+    return;
+  }
+  if (votanteObj.cedula !== cedulaIngresada) {
+    errorCedula.textContent = 'El número de cédula no coincide con nuestros registros. Verifica e inténtalo de nuevo.';
+    errorCedula.classList.remove('hidden');
+    return;
+  }
 
   // Verificar en servidor si ya votó
   const yaVoto = await verificarVotoServidor(finca, nombre);
@@ -1042,8 +1132,6 @@ async function iniciarEvaluacion() {
   estado.votante = nombre;
   estado.votos = {};
 
-  const fincaColabs = estado.colaboradores[finca] || [];
-  const votanteObj = fincaColabs.find(c => c.nombre === nombre);
   const esSuper = votanteObj && votanteObj.rol === 'supervisor';
 
   // Solo se evalúan colaboradores (no supervisores), y no a sí mismo
@@ -1364,6 +1452,7 @@ function mostrarClaveActuales() {
         <input class="input-field" type="text" id="clave_${finca.replace(/\s/g,'_')}" 
           value="${claves[finca]}" style="flex:1;padding:8px 12px;font-size:13px">
         <button class="btn btn-sm btn-verde" onclick="cambiarClaveFinca('${finca}')">💾</button>
+        <button class="btn btn-sm btn-rojo" onclick="eliminarFinca('${finca}')">🗑️</button>
       </div>
     `;
     container.appendChild(div);
@@ -1378,6 +1467,44 @@ function cambiarClaveFinca(finca) {
   // Guardar en servidor
   enviarAlScript({ tipo: 'guardarClaves', claves: PASS_FINCAS, passAdmin: PASS_ADMIN });
   alert('✅ Clave de ' + finca + ' actualizada');
+}
+
+function generarClaveFinca() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let pass = '';
+  for (let i = 0; i < 8; i++) pass += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('nuevaFincaPass').value = pass;
+}
+
+function agregarFinca() {
+  const nombre = document.getElementById('nuevaFincaNombre').value.trim();
+  const pass = document.getElementById('nuevaFincaPass').value.trim();
+  if (!nombre) { alert('Ingresa el nombre de la finca'); return; }
+  const yaExiste = FINCAS.some(f => f.toLowerCase() === nombre.toLowerCase());
+  if (yaExiste) { alert('Ya existe una finca con ese nombre'); return; }
+  if (!pass || pass.length < 4) { alert('La contraseña debe tener al menos 4 caracteres'); return; }
+
+  PASS_FINCAS[nombre] = pass;
+  FINCAS = Object.keys(PASS_FINCAS);
+  estado.colaboradores[nombre] = [];
+  guardarLocal();
+  poblarSelectsFinca();
+  mostrarClaveActuales();
+
+  enviarAlScript({ tipo: 'guardarClaves', claves: PASS_FINCAS, passAdmin: PASS_ADMIN });
+
+  document.getElementById('nuevaFincaNombre').value = '';
+  document.getElementById('nuevaFincaPass').value = '';
+  alert('✅ Finca "' + nombre + '" creada. Ya puedes usarla en Supervisor / Votación con la contraseña que definiste.');
+}
+
+function eliminarFinca(finca) {
+  if (!confirm('¿Eliminar la finca "' + finca + '"? Esto no borra los votos ya registrados, pero dejará de aparecer en los selectores.')) return;
+  delete PASS_FINCAS[finca];
+  FINCAS = Object.keys(PASS_FINCAS);
+  poblarSelectsFinca();
+  mostrarClaveActuales();
+  enviarAlScript({ tipo: 'guardarClaves', claves: PASS_FINCAS, passAdmin: PASS_ADMIN });
 }
 
 function cambiarPassAdmin() {
@@ -1473,19 +1600,37 @@ function cargarListaAdmin() {
   colabs.forEach((c, i) => {
     const div = document.createElement('div');
     div.className = 'colab-item';
+    div.style.flexWrap = 'wrap';
     const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : 'badge-colab';
     const badgeText = c.rol === 'supervisor' ? 'Supervisor' : 'Colaborador';
     div.innerHTML = `
-      <div>
+      <div style="flex:1;min-width:160px">
         <div class="colab-name">${c.nombre}</div>
         <div style="font-size:12px;color:var(--gris);margin-top:2px">${c.cargo || ''}</div>
         <span class="colab-badge ${badgeClass}">${badgeText}</span>
+        ${c.cedula
+          ? `<div style="font-size:12px;color:var(--gris);margin-top:4px">C.I.: ${c.cedula}</div>`
+          : `<div style="display:flex;gap:6px;margin-top:6px">
+               <input class="input-field" type="text" id="cedFixAdmin_${i}" placeholder="Falta C.I. — ingrésala" inputmode="numeric" style="flex:1;padding:6px 10px;font-size:12px">
+               <button class="btn btn-sm btn-verde" onclick="guardarCedulaAdmin(${i})">💾</button>
+             </div>`}
       </div>
       <button class="btn btn-sm btn-rojo" onclick="eliminarColabAdmin(${i})">🗑️</button>
     `;
     container.appendChild(div);
   });
   document.getElementById('formAgregarAdmin').classList.remove('hidden');
+}
+
+function guardarCedulaAdmin(idx) {
+  const finca = document.getElementById('fincaAdminGest').value;
+  const input = document.getElementById('cedFixAdmin_' + idx);
+  const cedula = cedulaValida(input.value.trim());
+  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
+  estado.colaboradores[finca][idx].cedula = cedula;
+  guardarLocal();
+  cargarListaAdmin();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
 
 function eliminarColabAdmin(idx) {
@@ -1501,13 +1646,21 @@ function agregarColabAdmin() {
   const finca = document.getElementById('fincaAdminGest').value;
   const nombre = document.getElementById('adminNuevoNombre').value.trim();
   const cargo = document.getElementById('adminNuevoCargo').value.trim();
+  const cedulaInput = document.getElementById('adminNuevoCedula').value.trim();
   const rol = document.getElementById('adminNuevoRol').value;
   if (!nombre) { alert('Ingresa el nombre'); return; }
+  const cedula = cedulaValida(cedulaInput);
+  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
   if (!estado.colaboradores[finca]) estado.colaboradores[finca] = [];
-  estado.colaboradores[finca].push({ nombre, cargo, rol });
+  if (estado.colaboradores[finca].some(c => c.cedula === cedula)) {
+    alert('Ya existe un colaborador registrado con esa cédula en esta finca');
+    return;
+  }
+  estado.colaboradores[finca].push({ nombre, cargo, rol, cedula });
   guardarLocal();
   document.getElementById('adminNuevoNombre').value = '';
   document.getElementById('adminNuevoCargo').value = '';
+  document.getElementById('adminNuevoCedula').value = '';
   cargarListaAdmin();
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
@@ -1594,7 +1747,7 @@ function exportarInforme() {
 
     return `
       <div style="margin-bottom:24px;page-break-inside:avoid">
-        <div style="background:#1B6B45;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
+        <div style="background:#0F1C3F;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
           <span>🌹 ${finca}</span>
           <span style="font-size:11px;opacity:0.8">${ranking.length} colaboradores evaluados</span>
         </div>
@@ -1615,7 +1768,7 @@ function exportarInforme() {
 
         <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;font-size:11px">
           <thead>
-            <tr style="background:#2E7D5E;color:white">
+            <tr style="background:#0F1C3F;color:white">
               <th style="padding:6px 8px;text-align:center">#</th>
               <th style="padding:6px 8px;text-align:left">Colaborador</th>
               <th style="padding:6px 8px;text-align:center">Puntualidad</th>
@@ -1623,7 +1776,7 @@ function exportarInforme() {
               <th style="padding:6px 8px;text-align:center">Actitud</th>
               <th style="padding:6px 8px;text-align:center">Conocimiento</th>
               <th style="padding:6px 8px;text-align:center">Servicio</th>
-              <th style="padding:6px 8px;text-align:center;background:#1B6B45">Promedio</th>
+              <th style="padding:6px 8px;text-align:center;background:#185FA5">Promedio</th>
             </tr>
           </thead>
           <tbody>${filas}</tbody>
@@ -1650,10 +1803,10 @@ function exportarInforme() {
       </style>
     </head>
     <body>
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1B6B45;padding-bottom:12px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0F1C3F;padding-bottom:12px;margin-bottom:20px">
         <div>
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#1B6B45;font-weight:700">Informe — Colaborador del Mes</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#0F1C3F;font-weight:700">Informe — Colaborador del Mes</div>
           <div style="font-size:11px;color:#6B7280;margin-top:2px">${mes} · Evaluación por parámetros</div>
         </div>
         <div style="text-align:right;font-size:10px;color:#9CA3AF">
