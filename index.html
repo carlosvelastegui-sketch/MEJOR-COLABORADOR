@@ -929,6 +929,8 @@ function tabSup(tab) {
   if (tab === 'estado') renderEstadoVotaciones();
 }
 
+let editandoSuper = null;
+
 function renderListaSupervisor() {
   const finca = estado.supervisorFinca;
   const colabs = estado.colaboradores[finca] || [];
@@ -938,6 +940,27 @@ function renderListaSupervisor() {
     const div = document.createElement('div');
     div.className = 'colab-item';
     div.style.flexWrap = 'wrap';
+
+    if (editandoSuper === i) {
+      div.innerHTML = `
+        <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px">
+          <input class="input-field" type="text" id="edNombre_${i}" value="${c.nombre || ''}" placeholder="Nombre completo" style="padding:8px 10px;font-size:13px">
+          <input class="input-field" type="text" id="edCargo_${i}" value="${c.cargo || ''}" placeholder="Cargo" style="padding:8px 10px;font-size:13px">
+          <input class="input-field" type="text" id="edCedula_${i}" value="${c.cedula || ''}" placeholder="Número de cédula / C.I." inputmode="numeric" style="padding:8px 10px;font-size:13px">
+          <select class="select-field" id="edRol_${i}" style="padding:8px 10px;font-size:13px">
+            <option value="colaborador" ${c.rol === 'colaborador' ? 'selected' : ''}>Colaborador</option>
+            <option value="supervisor" ${c.rol === 'supervisor' ? 'selected' : ''}>Supervisor</option>
+          </select>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-verde" style="flex:1" onclick="guardarEdicionColab(${i})">💾 Guardar</button>
+            <button class="btn btn-sm btn-outline" style="flex:1" onclick="cancelarEdicionColab()">✖ Cancelar</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      return;
+    }
+
     const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : c.rol === 'admin' ? 'badge-admin' : 'badge-colab';
     const badgeText = c.rol === 'supervisor' ? 'Supervisor' : c.rol === 'admin' ? 'Admin' : 'Colaborador';
     div.innerHTML = `
@@ -947,15 +970,43 @@ function renderListaSupervisor() {
         <span class="colab-badge ${badgeClass}">${badgeText}</span>
         ${c.cedula
           ? `<div style="font-size:12px;color:var(--gris);margin-top:4px">C.I.: ${c.cedula}</div>`
-          : `<div style="display:flex;gap:6px;margin-top:6px">
-               <input class="input-field" type="text" id="cedFix_${i}" placeholder="Falta C.I. — ingrésala" inputmode="numeric" style="flex:1;padding:6px 10px;font-size:12px">
-               <button class="btn btn-sm btn-verde" onclick="guardarCedula(${i})">💾</button>
-             </div>`}
+          : `<div style="font-size:12px;color:var(--rojo);margin-top:4px">⚠ Falta C.I. — edítalo para registrarla</div>`}
       </div>
-      ${c.rol !== 'supervisor' && c.rol !== 'admin' ? `<button class="btn btn-sm btn-rojo" onclick="eliminarColab(${i})">🗑️</button>` : ''}
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-outline" onclick="editarColab(${i})">✏️</button>
+        ${c.rol !== 'admin' ? `<button class="btn btn-sm btn-rojo" onclick="eliminarColab(${i})">🗑️</button>` : ''}
+      </div>
     `;
     container.appendChild(div);
   });
+}
+
+function editarColab(idx) {
+  editandoSuper = idx;
+  renderListaSupervisor();
+}
+
+function cancelarEdicionColab() {
+  editandoSuper = null;
+  renderListaSupervisor();
+}
+
+function guardarEdicionColab(idx) {
+  const finca = estado.supervisorFinca;
+  const nombre = document.getElementById('edNombre_' + idx).value.trim();
+  const cargo = document.getElementById('edCargo_' + idx).value.trim();
+  const cedulaInput = document.getElementById('edCedula_' + idx).value.trim();
+  const rol = document.getElementById('edRol_' + idx).value;
+  if (!nombre) { alert('El nombre no puede quedar vacío'); return; }
+  const cedula = cedulaValida(cedulaInput);
+  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
+  const duplicada = estado.colaboradores[finca].some((c, i) => i !== idx && c.cedula === cedula);
+  if (duplicada) { alert('Ya existe otro colaborador con esa cédula en esta finca'); return; }
+  estado.colaboradores[finca][idx] = { nombre, cargo, rol, cedula };
+  guardarLocal();
+  editandoSuper = null;
+  renderListaSupervisor();
+  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
 
 function agregarColab() {
@@ -986,17 +1037,6 @@ function eliminarColab(idx) {
   const finca = estado.supervisorFinca;
   if (!confirm('¿Eliminar a ' + estado.colaboradores[finca][idx].nombre + '?')) return;
   estado.colaboradores[finca].splice(idx, 1);
-  guardarLocal();
-  renderListaSupervisor();
-  enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
-}
-
-function guardarCedula(idx) {
-  const finca = estado.supervisorFinca;
-  const input = document.getElementById('cedFix_' + idx);
-  const cedula = cedulaValida(input.value.trim());
-  if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
-  estado.colaboradores[finca][idx].cedula = cedula;
   guardarLocal();
   renderListaSupervisor();
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
@@ -1596,6 +1636,8 @@ function enviarVotosAdmin() {
   document.getElementById('fincaAdminEval').value = '';
 }
 
+let editandoAdmin = null;
+
 function cargarListaAdmin() {
   const finca = document.getElementById('fincaAdminGest').value;
   if (!finca) return;
@@ -1607,6 +1649,27 @@ function cargarListaAdmin() {
     const div = document.createElement('div');
     div.className = 'colab-item';
     div.style.flexWrap = 'wrap';
+
+    if (editandoAdmin === i) {
+      div.innerHTML = `
+        <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px">
+          <input class="input-field" type="text" id="edAdminNombre_${i}" value="${c.nombre || ''}" placeholder="Nombre completo" style="padding:8px 10px;font-size:13px">
+          <input class="input-field" type="text" id="edAdminCargo_${i}" value="${c.cargo || ''}" placeholder="Cargo" style="padding:8px 10px;font-size:13px">
+          <input class="input-field" type="text" id="edAdminCedula_${i}" value="${c.cedula || ''}" placeholder="Número de cédula / C.I." inputmode="numeric" style="padding:8px 10px;font-size:13px">
+          <select class="select-field" id="edAdminRol_${i}" style="padding:8px 10px;font-size:13px">
+            <option value="colaborador" ${c.rol === 'colaborador' ? 'selected' : ''}>Colaborador</option>
+            <option value="supervisor" ${c.rol === 'supervisor' ? 'selected' : ''}>Supervisor</option>
+          </select>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-verde" style="flex:1" onclick="guardarEdicionColabAdmin(${i})">💾 Guardar</button>
+            <button class="btn btn-sm btn-outline" style="flex:1" onclick="cancelarEdicionColabAdmin()">✖ Cancelar</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+      return;
+    }
+
     const badgeClass = c.rol === 'supervisor' ? 'badge-supervisor' : 'badge-colab';
     const badgeText = c.rol === 'supervisor' ? 'Supervisor' : 'Colaborador';
     div.innerHTML = `
@@ -1616,25 +1679,42 @@ function cargarListaAdmin() {
         <span class="colab-badge ${badgeClass}">${badgeText}</span>
         ${c.cedula
           ? `<div style="font-size:12px;color:var(--gris);margin-top:4px">C.I.: ${c.cedula}</div>`
-          : `<div style="display:flex;gap:6px;margin-top:6px">
-               <input class="input-field" type="text" id="cedFixAdmin_${i}" placeholder="Falta C.I. — ingrésala" inputmode="numeric" style="flex:1;padding:6px 10px;font-size:12px">
-               <button class="btn btn-sm btn-verde" onclick="guardarCedulaAdmin(${i})">💾</button>
-             </div>`}
+          : `<div style="font-size:12px;color:var(--rojo);margin-top:4px">⚠ Falta C.I. — edítalo para registrarla</div>`}
       </div>
-      <button class="btn btn-sm btn-rojo" onclick="eliminarColabAdmin(${i})">🗑️</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-outline" onclick="editarColabAdmin(${i})">✏️</button>
+        <button class="btn btn-sm btn-rojo" onclick="eliminarColabAdmin(${i})">🗑️</button>
+      </div>
     `;
     container.appendChild(div);
   });
   document.getElementById('formAgregarAdmin').classList.remove('hidden');
 }
 
-function guardarCedulaAdmin(idx) {
+function editarColabAdmin(idx) {
+  editandoAdmin = idx;
+  cargarListaAdmin();
+}
+
+function cancelarEdicionColabAdmin() {
+  editandoAdmin = null;
+  cargarListaAdmin();
+}
+
+function guardarEdicionColabAdmin(idx) {
   const finca = document.getElementById('fincaAdminGest').value;
-  const input = document.getElementById('cedFixAdmin_' + idx);
-  const cedula = cedulaValida(input.value.trim());
+  const nombre = document.getElementById('edAdminNombre_' + idx).value.trim();
+  const cargo = document.getElementById('edAdminCargo_' + idx).value.trim();
+  const cedulaInput = document.getElementById('edAdminCedula_' + idx).value.trim();
+  const rol = document.getElementById('edAdminRol_' + idx).value;
+  if (!nombre) { alert('El nombre no puede quedar vacío'); return; }
+  const cedula = cedulaValida(cedulaInput);
   if (!cedula) { alert('Ingresa un número de cédula válido (6 a 10 dígitos)'); return; }
-  estado.colaboradores[finca][idx].cedula = cedula;
+  const duplicada = estado.colaboradores[finca].some((c, i) => i !== idx && c.cedula === cedula);
+  if (duplicada) { alert('Ya existe otro colaborador con esa cédula en esta finca'); return; }
+  estado.colaboradores[finca][idx] = { nombre, cargo, rol, cedula };
   guardarLocal();
+  editandoAdmin = null;
   cargarListaAdmin();
   enviarAlScript({ tipo: 'actualizarLista', finca, colaboradores: estado.colaboradores[finca] });
 }
