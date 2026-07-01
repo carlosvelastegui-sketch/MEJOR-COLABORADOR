@@ -18,8 +18,8 @@
     --blanco: #FFFFFF;
     --texto: #1F2937;
     --rojo: #DC2626;
-    --azul: #185FA5;
-    --azul-oscuro: #0F1C3F;
+    --azul: #2E7BC4;
+    --azul-oscuro: #185FA5;
     --azul-claro: #E6F1FB;
   }
 
@@ -27,7 +27,7 @@
 
   body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #051023 0%, #0F1C3F 50%, #051023 100%);
+    background: linear-gradient(135deg, #0B2A4A 0%, #185FA5 50%, #0B2A4A 100%);
     min-height: 100vh;
     color: var(--texto);
   }
@@ -895,7 +895,7 @@ function cerrarSesion() {
 // ─────────────────────────────────────────────
 // SUPERVISOR
 // ─────────────────────────────────────────────
-function loginSupervisor() {
+async function loginSupervisor() {
   const finca = document.getElementById('fincaSup').value;
   const pass = document.getElementById('passSup').value;
   if (!finca) { alert('Selecciona una finca'); return; }
@@ -909,6 +909,8 @@ function loginSupervisor() {
   document.getElementById('fincaSupLabel').textContent = finca;
   mostrar('pantallaSuper');
   tabSup('lista');
+  document.getElementById('listaColabsSuper').innerHTML = '<div class="alerta alerta-info">⏳ Cargando tu equipo...</div>';
+  await cargarColabsDesdeSheet(finca);
   renderListaSupervisor();
   generarLinkFinca(finca);
 }
@@ -1751,7 +1753,7 @@ function exportarInforme() {
 
     return `
       <div style="margin-bottom:24px;page-break-inside:avoid">
-        <div style="background:#0F1C3F;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
+        <div style="background:#185FA5;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
           <span>🌹 ${finca}</span>
           <span style="font-size:11px;opacity:0.8">${ranking.length} colaboradores evaluados</span>
         </div>
@@ -1772,7 +1774,7 @@ function exportarInforme() {
 
         <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;font-size:11px">
           <thead>
-            <tr style="background:#0F1C3F;color:white">
+            <tr style="background:#185FA5;color:white">
               <th style="padding:6px 8px;text-align:center">#</th>
               <th style="padding:6px 8px;text-align:left">Colaborador</th>
               <th style="padding:6px 8px;text-align:center">Puntualidad</th>
@@ -1807,10 +1809,10 @@ function exportarInforme() {
       </style>
     </head>
     <body>
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0F1C3F;padding-bottom:12px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #185FA5;padding-bottom:12px;margin-bottom:20px">
         <div>
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#0F1C3F;font-weight:700">Informe — Colaborador del Mes</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#185FA5;font-weight:700">Informe — Colaborador del Mes</div>
           <div style="font-size:11px;color:#6B7280;margin-top:2px">${mes} · Evaluación por parámetros</div>
         </div>
         <div style="text-align:right;font-size:10px;color:#9CA3AF">
