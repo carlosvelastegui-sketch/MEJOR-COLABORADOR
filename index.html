@@ -1791,6 +1791,83 @@ async function verificarVotoServidor(finca, nombre) {
   }
 }
 
+// ─────────────────────────────────────────────
+// INFORME GERENCIAL — helpers de análisis y gráficos
+// ─────────────────────────────────────────────
+function _escHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function _colorPorValor(v) {
+  if (v >= 4) return '#1B6B45';
+  if (v >= 3) return '#C9A84C';
+  return '#DC2626';
+}
+
+function _calificacionTexto(v) {
+  if (v >= 4) return 'Excelente';
+  if (v >= 3) return 'Regular / Aceptable';
+  return 'Necesita atención';
+}
+
+// Gráfico de barras horizontales en SVG (imprime perfecto, sin dependencias)
+function _svgBarrasH(items, opts = {}) {
+  const anchoTotal = opts.ancho || 700;
+  const anchoLabel = opts.anchoLabel || 240;
+  const altoFila = opts.altoFila || 24;
+  const gap = 9;
+  const maxValor = opts.maxValor || 5;
+  const anchoBarra = anchoTotal - anchoLabel - 55;
+  const alto = items.length * (altoFila + gap) + gap;
+
+  const lineasGuia = [1,2,3,4,5].map(v => {
+    const x = anchoLabel + (v / maxValor) * anchoBarra;
+    return `<line x1="${x}" y1="0" x2="${x}" y2="${alto}" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="2,2"/>
+            <text x="${x}" y="${alto - 2}" font-size="8" fill="#9CA3AF" text-anchor="middle">${v}</text>`;
+  }).join('');
+
+  const barras = items.map((it, i) => {
+    const y = gap + i * (altoFila + gap);
+    const color = _colorPorValor(it.valor);
+    const w = Math.max(3, (it.valor / maxValor) * anchoBarra);
+    return `
+      <text x="0" y="${y + altoFila*0.68}" font-size="10.5" fill="#1F2937" font-weight="${it.destacado ? '700' : '400'}">${_escHtml(it.label)}</text>
+      <rect x="${anchoLabel}" y="${y}" width="${anchoBarra}" height="${altoFila}" fill="#F3F4F6" rx="4"/>
+      <rect x="${anchoLabel}" y="${y}" width="${w}" height="${altoFila}" fill="${color}" rx="4"/>
+      <text x="${anchoLabel + w + 8}" y="${y + altoFila*0.68}" font-size="10.5" font-weight="700" fill="${color}">${it.valor.toFixed(2)}</text>
+    `;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${anchoTotal} ${alto}" width="100%" style="font-family:Inter,sans-serif;overflow:visible">
+    <g>${lineasGuia}</g>
+    <g>${barras}</g>
+  </svg>`;
+}
+
+// Extrae, por finca, el ranking + promedios por parámetro del equipo
+function _analizarFinca(colabs) {
+  const ranking = Object.keys(colabs).map(nombre => {
+    const d = colabs[nombre];
+    const paramsProm = PARAMETROS.map((p, pi) => d.params && d.params[pi] && d.params[pi].count > 0 ? (d.params[pi].total / d.params[pi].count) : null);
+    const prom = d.count > 0 ? (d.total / d.count) : 0;
+    return { nombre, paramsProm, prom };
+  }).sort((a, b) => b.prom - a.prom);
+
+  // Promedio del equipo por cada parámetro
+  const paramEquipo = PARAMETROS.map((p, pi) => {
+    const vals = ranking.map(r => r.paramsProm[pi]).filter(v => v !== null && !isNaN(v));
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+  });
+
+  const promFinca = ranking.length ? ranking.reduce((a,r) => a + r.prom, 0) / ranking.length : 0;
+  const iMax = paramEquipo.indexOf(Math.max(...paramEquipo));
+  const iMin = paramEquipo.indexOf(Math.min(...paramEquipo));
+  const excelentes = ranking.filter(r => r.prom >= 4);
+  const riesgo = ranking.filter(r => r.prom < 3);
+
+  return { ranking, paramEquipo, promFinca, fortaleza: PARAMETROS[iMax], fortalezaVal: paramEquipo[iMax], oportunidad: PARAMETROS[iMin], oportunidadVal: paramEquipo[iMin], excelentes, riesgo };
+}
+
 function exportarInforme() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy = new Date();
@@ -1802,54 +1879,162 @@ function exportarInforme() {
     return;
   }
 
-  const fincasHTML = FINCAS.map(finca => {
-    const colabs = datos[finca];
-    if (!colabs || Object.keys(colabs).length === 0) return '';
+  // ── Analizar cada finca con datos ──
+  const fincasConDatos = FINCAS.filter(f => datos[f] && Object.keys(datos[f]).length > 0);
+  const analisisPorFinca = {};
+  fincasConDatos.forEach(f => { analisisPorFinca[f] = _analizarFinca(datos[f]); });
 
-    // Calcular promedios por colaborador y parámetro
-    const ranking = Object.keys(colabs).map(nombre => {
-      const d = colabs[nombre];
-      const params = PARAMETROS.map((p, pi) => {
-        const val = d.params && d.params[pi] ? (d.params[pi].total / d.params[pi].count).toFixed(1) : '—';
-        return val;
-      });
-      const prom = d.count > 0 ? (d.total / d.count).toFixed(2) : 0;
-      return { nombre, params, prom: parseFloat(prom) };
-    }).sort((a, b) => b.prom - a.prom);
+  // ── Estadísticas globales de la organización ──
+  const todosColabs = [];
+  fincasConDatos.forEach(f => analisisPorFinca[f].ranking.forEach(r => todosColabs.push({ finca: f, ...r })));
 
-    if (ranking.length === 0) return '';
+  const promedioGlobal = todosColabs.length ? todosColabs.reduce((a,c) => a + c.prom, 0) / todosColabs.length : 0;
+  const paramGlobal = PARAMETROS.map((p, pi) => {
+    const vals = todosColabs.map(c => c.paramsProm[pi]).filter(v => v !== null && !isNaN(v));
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+  });
+  const iMaxG = paramGlobal.indexOf(Math.max(...paramGlobal));
+  const iMinG = paramGlobal.indexOf(Math.min(...paramGlobal));
 
+  const rankingFincas = fincasConDatos.map(f => ({ finca: f, prom: analisisPorFinca[f].promFinca }))
+    .sort((a,b) => b.prom - a.prom);
+  const mejorFincaG = rankingFincas[0];
+  const menorFincaG = rankingFincas[rankingFincas.length - 1];
+
+  const totalExcelentes = todosColabs.filter(c => c.prom >= 4).length;
+  const totalRiesgo = todosColabs.filter(c => c.prom < 3).length;
+  const pctExcelentes = todosColabs.length ? ((totalExcelentes / todosColabs.length) * 100).toFixed(0) : 0;
+  const pctRiesgo = todosColabs.length ? ((totalRiesgo / todosColabs.length) * 100).toFixed(0) : 0;
+
+  // ── Gráfico comparativo entre fincas ──
+  const chartFincas = _svgBarrasH(
+    rankingFincas.map(r => ({ label: r.finca, valor: r.prom, destacado: r.finca === mejorFincaG.finca })),
+    { ancho: 720, anchoLabel: 190 }
+  );
+
+  // ── Gráfico comparativo de competencias a nivel organización ──
+  const chartParamsGlobal = _svgBarrasH(
+    PARAMETROS.map((p, pi) => ({ label: p, valor: paramGlobal[pi], destacado: pi === iMaxG })).sort((a,b) => b.valor - a.valor),
+    { ancho: 720, anchoLabel: 190 }
+  );
+
+  // ── Sección resumen ejecutivo ──
+  const resumenEjecutivoHTML = `
+    <div style="margin-bottom:22px;page-break-inside:avoid">
+      <div style="background:#0B2A4A;color:white;padding:10px 16px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700">
+        📊 Resumen ejecutivo — Toda la operación
+      </div>
+      <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:14px 16px;background:#FAFBFC">
+
+        <div style="display:flex;gap:10px;margin-bottom:16px">
+          <div style="flex:1;background:#E6F1FB;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#185FA5">${fincasConDatos.length}</div>
+            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Fincas evaluadas</div>
+          </div>
+          <div style="flex:1;background:#E6F1FB;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#185FA5">${todosColabs.length}</div>
+            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Colaboradores evaluados</div>
+          </div>
+          <div style="flex:1;background:${_colorPorValor(promedioGlobal)}1A;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:700;color:${_colorPorValor(promedioGlobal)}">${promedioGlobal.toFixed(2)}</div>
+            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Promedio general / 5</div>
+          </div>
+          <div style="flex:1;background:#E8F5EE;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#1B6B45">${pctExcelentes}%</div>
+            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Excelentes (≥4)</div>
+          </div>
+          <div style="flex:1;background:#FEECEC;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:700;color:#DC2626">${pctRiesgo}%</div>
+            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">En zona de riesgo (&lt;3)</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px">
+          <div style="flex:1">
+            <div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px">Comparativo de promedio general por finca</div>
+            ${chartFincas}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px">Comparativo de competencias — toda la organización</div>
+            ${chartParamsGlobal}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding:12px 14px;background:white;border:1px solid #E5E7EB;border-radius:8px;font-size:11px;line-height:1.6;color:#374151">
+          <strong style="color:#185FA5">Lectura del período:</strong>
+          La operación registra un promedio general de <strong>${promedioGlobal.toFixed(2)} / 5</strong>, calificado como <strong>${_calificacionTexto(promedioGlobal)}</strong>.
+          La finca con mejor desempeño es <strong>${mejorFincaG.finca}</strong> (${mejorFincaG.prom.toFixed(2)} / 5)${fincasConDatos.length > 1 ? `, mientras que <strong>${menorFincaG.finca}</strong> presenta la mayor oportunidad de mejora (${menorFincaG.prom.toFixed(2)} / 5)` : ''}.
+          A nivel de competencias, <strong>${PARAMETROS[iMaxG]}</strong> es la fortaleza más consistente de todo el equipo (${paramGlobal[iMaxG].toFixed(2)} / 5),
+          mientras que <strong>${PARAMETROS[iMinG]}</strong> es la competencia que requiere mayor atención a nivel organizacional (${paramGlobal[iMinG].toFixed(2)} / 5).
+          Del total de colaboradores evaluados, un <strong>${pctExcelentes}%</strong> se ubica en el rango de excelencia y un <strong>${pctRiesgo}%</strong> está en zona de riesgo y debería recibir seguimiento y plan de mejora individual.
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ── Sección por finca (tabla + gráficos + análisis) ──
+  const fincasHTML = fincasConDatos.map(finca => {
+    const a = analisisPorFinca[finca];
+    const ranking = a.ranking;
     const mejor = ranking[0];
     const menor = ranking[ranking.length - 1];
 
     const filas = ranking.map((r, i) => `
       <tr style="background:${i===0?'#FEF9E7':i%2===0?'#F9FAFB':'white'}">
         <td style="padding:5px 8px;text-align:center;font-weight:700;color:${i===0?'#C9A84C':i===1?'#9CA3AF':i===2?'#CD7F32':'#6B7280'};font-size:14px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
-        <td style="padding:5px 8px;font-weight:${i===0?'700':'400'}">${r.nombre}</td>
-        ${r.params.map(p => `<td style="padding:5px 8px;text-align:center;color:${parseFloat(p)>=4?'#1B6B45':parseFloat(p)<=2?'#DC2626':'#1F2937'};font-weight:600">${p}</td>`).join('')}
-        <td style="padding:5px 8px;text-align:center;font-weight:700;color:#1B6B45;background:#E8F5EE">${r.prom}</td>
+        <td style="padding:5px 8px;font-weight:${i===0?'700':'400'}">${_escHtml(r.nombre)}</td>
+        ${r.paramsProm.map(p => `<td style="padding:5px 8px;text-align:center;color:${p===null?'#9CA3AF':p>=4?'#1B6B45':p<=2?'#DC2626':'#1F2937'};font-weight:600">${p===null?'—':p.toFixed(1)}</td>`).join('')}
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:#1B6B45;background:#E8F5EE">${r.prom.toFixed(2)}</td>
       </tr>
     `).join('');
 
+    const chartColabs = _svgBarrasH(
+      ranking.map((r,i) => ({ label: r.nombre, valor: r.prom, destacado: i===0 })),
+      { ancho: 700, anchoLabel: 210, altoFila: 20 }
+    );
+
+    const chartParamsFinca = _svgBarrasH(
+      PARAMETROS.map((p, pi) => ({ label: p, valor: a.paramEquipo[pi], destacado: p === a.fortaleza })),
+      { ancho: 700, anchoLabel: 190, altoFila: 22 }
+    );
+
+    const vsGlobal = a.promFinca >= promedioGlobal
+      ? `por encima del promedio general de la operación (${promedioGlobal.toFixed(2)})`
+      : `por debajo del promedio general de la operación (${promedioGlobal.toFixed(2)})`;
+
+    const nombresRiesgo = a.riesgo.map(r => r.nombre).join(', ');
+    const nombresExcelentes = a.excelentes.map(r => r.nombre).join(', ');
+
     return `
-      <div style="margin-bottom:24px;page-break-inside:avoid">
+      <div style="margin-bottom:26px;page-break-inside:avoid">
         <div style="background:#185FA5;color:white;padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center">
-          <span>🌹 ${finca}</span>
-          <span style="font-size:11px;opacity:0.8">${ranking.length} colaboradores evaluados</span>
+          <span>🌹 ${_escHtml(finca)}</span>
+          <span style="font-size:11px;opacity:0.8">${ranking.length} colaboradores evaluados · Promedio finca: ${a.promFinca.toFixed(2)} / 5</span>
         </div>
 
         <div style="display:flex;gap:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-top:none">
           <div style="flex:1;background:linear-gradient(135deg,#C9A84C,#e8c06a);border-radius:8px;padding:10px;color:white;text-align:center">
             <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">🏆 Mejor colaborador</div>
-            <div style="font-size:14px;font-weight:700;margin:3px 0">${mejor.nombre}</div>
-            <div style="font-size:11px;opacity:0.85">Promedio: ${mejor.prom} / 5</div>
+            <div style="font-size:14px;font-weight:700;margin:3px 0">${_escHtml(mejor.nombre)}</div>
+            <div style="font-size:11px;opacity:0.85">Promedio: ${mejor.prom.toFixed(2)} / 5</div>
           </div>
           ${menor.nombre !== mejor.nombre ? `
           <div style="flex:1;background:#6B7280;border-radius:8px;padding:10px;color:white;text-align:center">
             <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">📉 Menor puntaje</div>
-            <div style="font-size:14px;font-weight:700;margin:3px 0">${menor.nombre}</div>
-            <div style="font-size:11px;opacity:0.85">Promedio: ${menor.prom} / 5</div>
+            <div style="font-size:14px;font-weight:700;margin:3px 0">${_escHtml(menor.nombre)}</div>
+            <div style="font-size:11px;opacity:0.85">Promedio: ${menor.prom.toFixed(2)} / 5</div>
           </div>` : ''}
+        </div>
+
+        <div style="display:flex;gap:16px;padding:12px;border:1px solid #E5E7EB;border-top:none;background:white">
+          <div style="flex:1">
+            <div style="font-size:10.5px;font-weight:700;color:#185FA5;margin-bottom:6px">Puntaje por colaborador</div>
+            ${chartColabs}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:10.5px;font-weight:700;color:#185FA5;margin-bottom:6px">Competencias del equipo — ${_escHtml(finca)}</div>
+            ${chartParamsFinca}
+          </div>
         </div>
 
         <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-top:none;font-size:11px">
@@ -1867,9 +2052,32 @@ function exportarInforme() {
           </thead>
           <tbody>${filas}</tbody>
         </table>
+
+        <div style="padding:12px 14px;background:#FAFBFC;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;font-size:11px;line-height:1.6;color:#374151">
+          <strong style="color:#185FA5">Análisis — ${_escHtml(finca)}:</strong>
+          El equipo obtiene un promedio de <strong>${a.promFinca.toFixed(2)} / 5</strong>, ${vsGlobal}.
+          Su fortaleza principal es <strong>${a.fortaleza}</strong> (${a.fortalezaVal.toFixed(2)} / 5) y su mayor oportunidad de mejora es <strong>${a.oportunidad}</strong> (${a.oportunidadVal.toFixed(2)} / 5).
+          ${a.excelentes.length ? `Se destacan por su desempeño excelente: <strong>${_escHtml(nombresExcelentes)}</strong>.` : ''}
+          ${a.riesgo.length ? `Requieren seguimiento y plan de mejora: <strong>${_escHtml(nombresRiesgo)}</strong>.` : 'No se identifican colaboradores en zona de riesgo (&lt;3) en esta finca.'}
+        </div>
       </div>
     `;
   }).join('');
+
+  const conclusionesHTML = `
+    <div style="margin-top:6px;padding:14px 16px;border:1px solid #E5E7EB;border-radius:8px;background:#FAFBFC;page-break-inside:avoid">
+      <div style="font-size:13px;font-weight:700;color:#185FA5;margin-bottom:8px">2.5 Conclusiones</div>
+      <ul style="font-size:11px;line-height:1.7;color:#374151;padding-left:18px;margin:0">
+        <li>Esta evaluación no busca "castigar", sino servir como herramienta de diagnóstico para optimizar el rendimiento del equipo y corregir a tiempo las brechas operativas.</li>
+        <li>La coevaluación reduce la percepción de favoritismo, ya que el reconocimiento se otorga bajo el consenso de los propios compañeros de trabajo.</li>
+        <li>El promedio general de <strong>${promedioGlobal.toFixed(2)} / 5</strong> ubica a la operación en un nivel <strong>${_calificacionTexto(promedioGlobal)}</strong> para el período evaluado.</li>
+        <li><strong>${PARAMETROS[iMaxG]}</strong> es la competencia mejor consolidada en toda la organización y debe mantenerse como estándar de referencia.</li>
+        <li><strong>${PARAMETROS[iMinG]}</strong> es la competencia con mayor oportunidad de mejora a nivel general; se recomienda reforzarla mediante capacitación o retroalimentación dirigida.</li>
+        <li>El <strong>${pctRiesgo}%</strong> del personal evaluado se encuentra en zona de riesgo (&lt;3/5) y amerita un plan de acompañamiento individual en el corto plazo.</li>
+        <li>Se recomienda dar seguimiento mensual a esta tendencia para verificar si las acciones correctivas mejoran el promedio de cada finca en los próximos períodos.</li>
+      </ul>
+    </div>
+  `;
 
   const ventana = window.open('', '_blank');
   ventana.document.write(`
@@ -1877,9 +2085,9 @@ function exportarInforme() {
     <html lang="es">
     <head>
       <meta charset="UTF-8">
-      <title>Informe Colaborador del Mes — ${mes}</title>
+      <title>Informe Gerencial — Colaborador del Mes — ${mes}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; color:#1F2937; background:white; padding:20px 25px; font-size:12px; }
         @media print {
@@ -1892,19 +2100,24 @@ function exportarInforme() {
       <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #185FA5;padding-bottom:12px;margin-bottom:20px">
         <div>
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:4px">🌹 HANASKA CATERING</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#185FA5;font-weight:700">Informe — Colaborador del Mes</div>
-          <div style="font-size:11px;color:#6B7280;margin-top:2px">${mes} · Evaluación por parámetros</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#185FA5;font-weight:700">Informe Gerencial — Colaborador del Mes</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:2px">${mes} · Evaluación de desempeño por competencias · PP04-FR.02.01</div>
         </div>
         <div style="text-align:right;font-size:10px;color:#9CA3AF">
           <div>Generado: ${hoy.toLocaleDateString('es-EC')}</div>
           <div style="margin-top:2px">Administrador: ${estado.votante || 'Carlos Velástegui'}</div>
           <div style="margin-top:6px;background:#E8F5EE;padding:4px 10px;border-radius:6px;color:#1B6B45;font-size:10px">
-            🟢 ≥4 Excelente &nbsp; 🟡 3 Regular &nbsp; 🔴 ≤2 Por mejorar
+            🟢 ≥4 Excelente &nbsp; 🟡 3 Regular &nbsp; 🔴 &lt;3 Necesita atención
           </div>
         </div>
       </div>
 
+      ${resumenEjecutivoHTML}
+
+      <div style="font-size:13px;font-weight:700;color:#185FA5;margin:18px 0 10px">Detalle por finca</div>
       ${fincasHTML}
+
+      ${conclusionesHTML}
 
       <div style="margin-top:20px;padding-top:10px;border-top:1px solid #E5E7EB;text-align:center;font-size:10px;color:#9CA3AF">
         Elaborado Por: Ing. Carlos Velástegui — Administrador HANASKA CATERING ROSAPRIMA
