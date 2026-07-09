@@ -617,6 +617,19 @@
 
     <!-- TAB INFORME -->
     <div id="adminInforme">
+      <div class="input-group">
+        <label class="input-label">📅 Mes a consultar</label>
+        <select class="select-field" id="filtroMesInforme" onchange="aplicarFiltroInforme()">
+          <option value="">-- Selecciona un mes --</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label class="input-label">🌹 Finca</label>
+        <select class="select-field" id="filtroFincaInforme" onchange="aplicarFiltroInforme()">
+          <option value="">Todas las fincas</option>
+        </select>
+      </div>
+      <div class="divider"></div>
       <div id="ganadorGlobal"></div>
       <div id="menorGlobal"></div>
       <div class="divider"></div>
@@ -1273,36 +1286,105 @@ function enviarVotos() {
 // ADMINISTRADOR
 // ─────────────────────────────────────────────
 
+let _votosCacheGlobal = [];
+
 async function cargarInforme() {
   document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">⏳ Cargando resultados...</div>';
+  document.getElementById('informePorFinca').innerHTML = '';
 
   const votos = await cargarVotosDesdeSheet();
+  _votosCacheGlobal = votos || [];
 
-  if (votos && votos.length > 0) {
-    const resultados = {};
-    votos.forEach(v => {
-      const finca = v.finca;
-      const evaluado = v.evaluado;
-      if (!resultados[finca]) resultados[finca] = {};
-      if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0, params: {} };
+  poblarFiltrosInforme(_votosCacheGlobal);
+  aplicarFiltroInforme();
+}
 
-      // Guardar promedio general
-      resultados[finca][evaluado].total += parseFloat(v.promedio) || 0;
-      resultados[finca][evaluado].count++;
+function poblarFiltrosInforme(votos) {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-      // Guardar por parámetro
-      const vals = [v.puntualidad, v.trabajoEquipo, v.actitud, v.conocimiento, v.servicio];
-      vals.forEach((val, pi) => {
-        if (!resultados[finca][evaluado].params[pi]) resultados[finca][evaluado].params[pi] = { total: 0, count: 0 };
-        resultados[finca][evaluado].params[pi].total += parseFloat(val) || 0;
-        resultados[finca][evaluado].params[pi].count++;
-      });
-    });
-    window._resultadosActuales = resultados;
-    renderInforme(resultados);
-  } else {
-    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Aún no hay votaciones registradas.</div>';
+  // Meses únicos presentes en los votos (clave YYYY-MM -> etiqueta "Mes YYYY")
+  const mesesMap = {};
+  votos.forEach(v => {
+    if (!v.fecha) return;
+    const d = new Date(v.fecha);
+    if (isNaN(d.getTime())) return;
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    mesesMap[key] = meses[d.getMonth()] + ' ' + d.getFullYear();
+  });
+
+  const clavesOrdenadas = Object.keys(mesesMap).sort().reverse();
+
+  const selMes = document.getElementById('filtroMesInforme');
+  const mesPrevio = selMes.value;
+  selMes.innerHTML = '<option value="">-- Selecciona un mes --</option>' +
+    clavesOrdenadas.map(k => `<option value="${k}">${mesesMap[k]}</option>`).join('');
+
+  if (mesPrevio && mesesMap[mesPrevio]) {
+    selMes.value = mesPrevio;
+  } else if (clavesOrdenadas.length > 0) {
+    selMes.value = clavesOrdenadas[0]; // por defecto, el mes más reciente con datos
   }
+
+  const selFinca = document.getElementById('filtroFincaInforme');
+  const fincaPrevia = selFinca.value;
+  selFinca.innerHTML = '<option value="">Todas las fincas</option>' +
+    FINCAS.map(f => `<option value="${f}">${f}</option>`).join('');
+  if (fincaPrevia && FINCAS.includes(fincaPrevia)) {
+    selFinca.value = fincaPrevia;
+  }
+}
+
+function aplicarFiltroInforme() {
+  const votos = _votosCacheGlobal || [];
+  const mesSel = document.getElementById('filtroMesInforme').value;
+  const fincaSel = document.getElementById('filtroFincaInforme').value;
+
+  if (!mesSel) {
+    document.getElementById('ganadorGlobal').innerHTML = '<div class="alerta alerta-info">Selecciona un mes para ver los resultados.</div>';
+    document.getElementById('menorGlobal').innerHTML = '';
+    document.getElementById('informePorFinca').innerHTML = '';
+    window._resultadosActuales = {};
+    return;
+  }
+
+  const votosFiltrados = votos.filter(v => {
+    if (!v.fecha) return false;
+    const d = new Date(v.fecha);
+    if (isNaN(d.getTime())) return false;
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (key !== mesSel) return false;
+    if (fincaSel && v.finca !== fincaSel) return false;
+    return true;
+  });
+
+  if (votosFiltrados.length === 0) {
+    document.getElementById('ganadorGlobal').innerHTML =
+      '<div class="alerta alerta-info">No hay votaciones registradas para ese mes' + (fincaSel ? ' en ' + fincaSel : '') + '.</div>';
+    document.getElementById('menorGlobal').innerHTML = '';
+    document.getElementById('informePorFinca').innerHTML = '';
+    window._resultadosActuales = {};
+    return;
+  }
+
+  const resultados = {};
+  votosFiltrados.forEach(v => {
+    const finca = v.finca;
+    const evaluado = v.evaluado;
+    if (!resultados[finca]) resultados[finca] = {};
+    if (!resultados[finca][evaluado]) resultados[finca][evaluado] = { total: 0, count: 0, params: {} };
+
+    resultados[finca][evaluado].total += parseFloat(v.promedio) || 0;
+    resultados[finca][evaluado].count++;
+
+    const vals = [v.puntualidad, v.trabajoEquipo, v.actitud, v.conocimiento, v.servicio];
+    vals.forEach((val, pi) => {
+      if (!resultados[finca][evaluado].params[pi]) resultados[finca][evaluado].params[pi] = { total: 0, count: 0 };
+      resultados[finca][evaluado].params[pi].total += parseFloat(val) || 0;
+      resultados[finca][evaluado].params[pi].count++;
+    });
+  });
+
+  renderInforme(resultados);
 }
 
 function renderInforme(resultados) {
@@ -1871,11 +1953,17 @@ function _analizarFinca(colabs) {
 function exportarInforme() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const hoy = new Date();
-  const mes = meses[hoy.getMonth()] + ' ' + hoy.getFullYear();
+  const selMesEl = document.getElementById('filtroMesInforme');
+  const selFincaEl = document.getElementById('filtroFincaInforme');
+  const mesTexto = (selMesEl && selMesEl.value && selMesEl.options[selMesEl.selectedIndex])
+    ? selMesEl.options[selMesEl.selectedIndex].text
+    : (meses[hoy.getMonth()] + ' ' + hoy.getFullYear());
+  const fincaTexto = (selFincaEl && selFincaEl.value) ? selFincaEl.value : '';
+  const mes = fincaTexto ? mesTexto + ' — ' + fincaTexto : mesTexto;
   const datos = window._resultadosActuales;
 
   if (!datos || Object.keys(datos).length === 0) {
-    alert('No hay datos para exportar aún.');
+    alert('No hay datos para exportar. Selecciona un mes con votaciones registradas.');
     return;
   }
 
