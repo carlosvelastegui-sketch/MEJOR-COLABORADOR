@@ -623,6 +623,9 @@
           <option value="">-- Selecciona un mes --</option>
         </select>
       </div>
+      <div id="avisoSinFecha" class="alerta alerta-error hidden" style="margin-bottom:12px">
+        ⚠️ El backend no está devolviendo la fecha de las votaciones, así que no se puede filtrar por mes todavía. Se están mostrando <b>todos</b> los registros juntos. Pide que revisen el Apps Script para que la columna "fecha" se guarde y se incluya en la respuesta de <code>action=votos</code>.
+      </div>
       <div class="input-group">
         <label class="input-label">🌹 Finca</label>
         <select class="select-field" id="filtroFincaInforme" onchange="aplicarFiltroInforme()">
@@ -1299,15 +1302,24 @@ async function cargarInforme() {
   aplicarFiltroInforme();
 }
 
+function _extraerFechaVoto(v) {
+  const candidatos = [v.fecha, v.Fecha, v.timestamp, v.Timestamp, v.marcaTemporal, v['Marca temporal'], v.fechaVoto, v.FechaVoto, v.date];
+  for (const c of candidatos) {
+    if (!c) continue;
+    const d = new Date(c);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
 function poblarFiltrosInforme(votos) {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   // Meses únicos presentes en los votos (clave YYYY-MM -> etiqueta "Mes YYYY")
   const mesesMap = {};
   votos.forEach(v => {
-    if (!v.fecha) return;
-    const d = new Date(v.fecha);
-    if (isNaN(d.getTime())) return;
+    const d = _extraerFechaVoto(v);
+    if (!d) return;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     mesesMap[key] = meses[d.getMonth()] + ' ' + d.getFullYear();
   });
@@ -1316,13 +1328,27 @@ function poblarFiltrosInforme(votos) {
 
   const selMes = document.getElementById('filtroMesInforme');
   const mesPrevio = selMes.value;
-  selMes.innerHTML = '<option value="">-- Selecciona un mes --</option>' +
-    clavesOrdenadas.map(k => `<option value="${k}">${mesesMap[k]}</option>`).join('');
 
-  if (mesPrevio && mesesMap[mesPrevio]) {
-    selMes.value = mesPrevio;
-  } else if (clavesOrdenadas.length > 0) {
-    selMes.value = clavesOrdenadas[0]; // por defecto, el mes más reciente con datos
+  if (clavesOrdenadas.length === 0 && votos.length > 0) {
+    // El backend no está devolviendo fecha en ningún formato reconocido: no bloqueamos el informe,
+    // mostramos todos los registros agrupados como un solo bloque.
+    selMes.innerHTML = '<option value="__todos__">Todos los registros (sin fecha disponible)</option>';
+    selMes.value = '__todos__';
+    const aviso = document.getElementById('avisoSinFecha');
+    if (aviso) aviso.classList.remove('hidden');
+    document.getElementById('informePorFinca') && (window._sinFechaBackend = true);
+  } else {
+    const aviso = document.getElementById('avisoSinFecha');
+    if (aviso) aviso.classList.add('hidden');
+    window._sinFechaBackend = false;
+    selMes.innerHTML = '<option value="">-- Selecciona un mes --</option>' +
+      clavesOrdenadas.map(k => `<option value="${k}">${mesesMap[k]}</option>`).join('');
+
+    if (mesPrevio && mesesMap[mesPrevio]) {
+      selMes.value = mesPrevio;
+    } else if (clavesOrdenadas.length > 0) {
+      selMes.value = clavesOrdenadas[0]; // por defecto, el mes más reciente con datos
+    }
   }
 
   const selFinca = document.getElementById('filtroFincaInforme');
@@ -1348,13 +1374,12 @@ function aplicarFiltroInforme() {
   }
 
   const votosFiltrados = votos.filter(v => {
-    if (!v.fecha) return false;
-    const d = new Date(v.fecha);
-    if (isNaN(d.getTime())) return false;
-    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    if (key !== mesSel) return false;
     if (fincaSel && v.finca !== fincaSel) return false;
-    return true;
+    if (mesSel === '__todos__') return true; // backend sin fecha: no filtramos por mes
+    const d = _extraerFechaVoto(v);
+    if (!d) return false;
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    return key === mesSel;
   });
 
   if (votosFiltrados.length === 0) {
