@@ -701,23 +701,36 @@
     <div id="adminConfig" class="hidden">
       <div class="paso-header">
         <div class="paso-num">📅</div>
-        <div class="paso-titulo">Período de evaluación activo</div>
+        <div class="paso-titulo">Período de evaluación activo por finca</div>
       </div>
       <div class="alerta alerta-info">
-        Mes activo ahora mismo: <b id="mesActivoLabel">cargando…</b><br>
-        Mientras un mes esté activo, todas las evaluaciones que se registren (y el control de
-        "ya voté") quedan guardadas bajo ese mes — sin importar la fecha real del calendario.
-        Úsalo para <b>reabrir un mes anterior</b> y que la gente vuelva a evaluar. Elige
-        "Automático" para volver a que el sistema use el mes calendario real.
+        Cada finca puede tener su propio mes activo — es <b>independiente</b>: reabrir julio
+        en una finca no afecta a las demás, que siguen en modo automático (mes real del
+        calendario) tal como están ahora, sin perder nada de su información. Mientras una
+        finca tenga un mes forzado, sus evaluaciones nuevas (y el control de "ya voté") se
+        guardan bajo ese mes.
       </div>
       <div class="input-group">
-        <label class="input-label">Selecciona el mes que quieres activar</label>
+        <label class="input-label">Finca a activar</label>
+        <select class="select-field" id="fincaMesActivo">
+          <option value="">-- Selecciona una finca --</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Mes que quieres activar para esa finca</label>
         <select class="select-field" id="selMesActivo">
           <option value="">Automático (mes actual del sistema)</option>
         </select>
       </div>
-      <button class="btn btn-dorado" onclick="guardarMesActivo()">💾 Activar este mes</button>
+      <button class="btn btn-dorado" onclick="guardarMesActivo()">💾 Activar para esta finca</button>
       <div id="mesActivoStatus" class="text-sm mt-12"></div>
+
+      <div class="divider"></div>
+      <div class="paso-header">
+        <div class="paso-num">👁️</div>
+        <div class="paso-titulo">Estado por finca</div>
+      </div>
+      <div id="tablaMesesActivos" class="colab-list">Cargando…</div>
 
       <div class="divider"></div>
 
@@ -1170,6 +1183,9 @@ async function seleccionarFincaVot() {
   estado.fincaActual = finca;
   document.getElementById('fincaVotLabel').textContent = finca;
 
+  // Muestra el mes que le corresponde a ESTA finca (puede estar reabierta)
+  actualizarMesVisibleParaFinca(finca);
+
   // Cargar colaboradores desde servidor
   await cargarColabsDesdeSheet(finca);
 
@@ -1346,27 +1362,44 @@ function _extraerFechaVoto(v) {
   return null;
 }
 
-function poblarFiltrosInforme(votos) {
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+// Devuelve el mes "real" del voto tal como quedó guardado en el backend
+// (ej. "julio 2026"), que ya respeta el período activo de esa finca —
+// no necesariamente coincide con la fecha real en que se envió el voto.
+// Solo si por alguna razón faltara ese campo, se cae de respaldo a
+// calcularlo desde la fecha de envío.
+const MES_A_NUM = {enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
+function _extraerMesVoto(v) {
+  if (v.mes) return v.mes.toString().trim().toLowerCase();
+  const d = _extraerFechaVoto(v);
+  if (!d) return null;
+  const meses = Object.keys(MES_A_NUM);
+  return meses[d.getMonth()] + ' ' + d.getFullYear();
+}
+function _compararMesesDesc(a, b) {
+  const [ma, ya] = a.split(' ');
+  const [mb, yb] = b.split(' ');
+  if (ya !== yb) return Number(yb) - Number(ya);
+  return (MES_A_NUM[mb] ?? -1) - (MES_A_NUM[ma] ?? -1);
+}
 
-  // Meses únicos presentes en los votos (clave YYYY-MM -> etiqueta "Mes YYYY")
+function poblarFiltrosInforme(votos) {
+  // Meses únicos presentes en los votos (clave = "julio 2026", ya en minúsculas)
   const mesesMap = {};
   votos.forEach(v => {
-    const d = _extraerFechaVoto(v);
-    if (!d) return;
-    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    mesesMap[key] = meses[d.getMonth()] + ' ' + d.getFullYear();
+    const key = _extraerMesVoto(v);
+    if (!key) return;
+    mesesMap[key] = capitalizar(key);
   });
 
-  const clavesOrdenadas = Object.keys(mesesMap).sort().reverse();
+  const clavesOrdenadas = Object.keys(mesesMap).sort(_compararMesesDesc);
 
   const selMes = document.getElementById('filtroMesInforme');
   const mesPrevio = selMes.value;
 
   if (clavesOrdenadas.length === 0 && votos.length > 0) {
-    // El backend no está devolviendo fecha en ningún formato reconocido: no bloqueamos el informe,
+    // Ningún voto trae mes ni fecha reconocible: no bloqueamos el informe,
     // mostramos todos los registros agrupados como un solo bloque.
-    selMes.innerHTML = '<option value="__todos__">Todos los registros (sin fecha disponible)</option>';
+    selMes.innerHTML = '<option value="__todos__">Todos los registros (sin mes disponible)</option>';
     selMes.value = '__todos__';
     const aviso = document.getElementById('avisoSinFecha');
     if (aviso) aviso.classList.remove('hidden');
@@ -1409,11 +1442,8 @@ function aplicarFiltroInforme() {
 
   const votosFiltrados = votos.filter(v => {
     if (fincaSel && v.finca !== fincaSel) return false;
-    if (mesSel === '__todos__') return true; // backend sin fecha: no filtramos por mes
-    const d = _extraerFechaVoto(v);
-    if (!d) return false;
-    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    return key === mesSel;
+    if (mesSel === '__todos__') return true; // sin mes/fecha reconocible: no filtramos
+    return _extraerMesVoto(v) === mesSel;
   });
 
   if (votosFiltrados.length === 0) {
@@ -1535,12 +1565,12 @@ function tabAdmin(tab) {
   });
   document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
   document.getElementById('tabAdmin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-  if (tab === 'config') { mostrarClaveActuales(); cargarMesActivoDesdeServidor(); }
+  if (tab === 'config') { mostrarClaveActuales(); poblarFincaMesActivo(); cargarTablaMesesActivos(); }
   if (tab === 'estado') cargarEstadoGlobal();
 }
 
 // ─────────────────────────────────────────────
-// PERÍODO DE EVALUACIÓN ACTIVO (reabrir un mes anterior)
+// PERÍODO DE EVALUACIÓN ACTIVO POR FINCA (reabrir un mes anterior)
 // ─────────────────────────────────────────────
 // OJO: el backend (getMesActual) genera y compara los meses en MINÚSCULAS
 // (ej. "julio 2026"). Por eso el VALUE de cada opción va en minúsculas —
@@ -1562,54 +1592,94 @@ function mesesDisponiblesParaActivar() {
   return opciones;
 }
 
-function poblarSelectMesActivo(mesActivoServidor) {
-  const sel = document.getElementById('selMesActivo');
-  const opciones = mesesDisponiblesParaActivar();
-  sel.innerHTML = '<option value="">Automático (mes actual del sistema)</option>' +
-    opciones.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-  // Si el servidor tiene un mes activo forzado (distinto al automático), lo pre-selecciona
-  const valorNormalizado = (mesActivoServidor || '').toLowerCase();
-  if (valorNormalizado && opciones.some(o => o.value === valorNormalizado)) {
-    sel.value = valorNormalizado;
-  } else {
-    sel.value = '';
+// Rellena el selector de finca (independiente de poblarSelectsFinca porque
+// este SÍ debe forzar "-- Selecciona --" por defecto, no recordar valor previo)
+function poblarFincaMesActivo() {
+  const sel = document.getElementById('fincaMesActivo');
+  sel.innerHTML = '<option value="">-- Selecciona una finca --</option>' +
+    FINCAS.map(f => `<option value="${f}">${f}</option>`).join('');
+  document.getElementById('selMesActivo').innerHTML =
+    '<option value="">Automático (mes actual del sistema)</option>' +
+    mesesDisponiblesParaActivar().map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  document.getElementById('mesActivoStatus').textContent = '';
+}
+
+// Al elegir una finca, consulta su estado actual y pre-selecciona el mes en el combo
+document.addEventListener('DOMContentLoaded', () => {
+  const selFinca = document.getElementById('fincaMesActivo');
+  if (selFinca) selFinca.addEventListener('change', cargarEstadoFincaMesActivo);
+});
+
+async function cargarEstadoFincaMesActivo() {
+  const finca = document.getElementById('fincaMesActivo').value;
+  const selMes = document.getElementById('selMesActivo');
+  if (!finca) { selMes.value = ''; return; }
+  try {
+    const url = SCRIPT_URL + '?action=configMes&finca=' + encodeURIComponent(finca);
+    const resp = await fetch(url);
+    const json = await resp.json();
+    selMes.value = (json.esAutomatico === false && json.mes) ? json.mes : '';
+  } catch (e) {
+    selMes.value = '';
   }
 }
 
-async function cargarMesActivoDesdeServidor() {
-  const label = document.getElementById('mesActivoLabel');
+// Actualiza la etiqueta pública "mesActual" según el mes activo de UNA finca
+// puntual (puede ser el mes automático o uno reabierto para esa finca).
+async function actualizarMesVisibleParaFinca(finca) {
   try {
-    const url = SCRIPT_URL + '?action=configMes';
-    const resp = await fetch(url);
+    const resp = await fetch(SCRIPT_URL + '?action=configMes&finca=' + encodeURIComponent(finca));
     const json = await resp.json();
-    const mes = json.mes || (MESES_NOMBRES[new Date().getMonth()] + ' ' + new Date().getFullYear());
-    const mesVisible = capitalizar(mes);
-    label.textContent = mesVisible + (json.esAutomatico === false ? '  ⚠️ (forzado manualmente)' : '  (automático)');
-    poblarSelectMesActivo(json.esAutomatico === false ? mes : '');
-    // Refleja también el mes real vigente en el resto de la app
-    document.getElementById('mesActual').textContent = mesVisible;
-    document.getElementById('mesAdminLabel').textContent = mesVisible;
-  } catch (e) {
-    label.textContent = 'No se pudo consultar (revisa el Apps Script)';
-    poblarSelectMesActivo('');
-  }
+    if (json.mes) document.getElementById('mesActual').textContent = capitalizar(json.mes);
+  } catch (e) { /* deja el valor que ya estaba mostrando */ }
 }
 
 async function guardarMesActivo() {
+  const finca = document.getElementById('fincaMesActivo').value;
   const mesElegido = document.getElementById('selMesActivo').value; // '' = automático, ya viene en minúsculas
   const status = document.getElementById('mesActivoStatus');
+  if (!finca) { status.textContent = '⚠️ Primero selecciona una finca.'; return; }
   status.textContent = 'Guardando…';
   try {
     await fetch(SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({ tipo: 'guardarMesActivo', mes: mesElegido, codigoSolicitante: estado.votante || '' })
+      body: JSON.stringify({ tipo: 'guardarMesActivo', finca, mes: mesElegido, codigoSolicitante: estado.votante || '' })
     });
     status.textContent = mesElegido
-      ? '✅ Listo. Ahora todas las evaluaciones se guardan como "' + capitalizar(mesElegido) + '".'
-      : '✅ Listo. Vuelto al modo automático (mes actual del sistema).';
-    await cargarMesActivoDesdeServidor();
+      ? '✅ Listo. "' + finca + '" ahora guarda sus evaluaciones como "' + capitalizar(mesElegido) + '". Las demás fincas no se ven afectadas.'
+      : '✅ Listo. "' + finca + '" volvió al modo automático (mes actual del sistema).';
+    await cargarTablaMesesActivos();
   } catch (e) {
     status.textContent = '⚠️ No se pudo guardar. Verifica tu conexión o el Apps Script.';
+  }
+}
+
+// Pinta la tabla con el estado de TODAS las fincas de un vistazo
+async function cargarTablaMesesActivos() {
+  const cont = document.getElementById('tablaMesesActivos');
+  cont.innerHTML = 'Cargando…';
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=mesesActivos');
+    const json = await resp.json();
+    const overrides = json.overrides || {};
+    const mesAutoVisible = capitalizar(json.mesAutomatico || '');
+
+    cont.innerHTML = FINCAS.map(f => {
+      const forzado = overrides[f];
+      const estadoTxt = forzado ? `⚠️ ${capitalizar(forzado)}` : `Automático`;
+      const chipClass = forzado ? 'chip-pendiente' : 'chip-votado';
+      return `
+        <div class="colab-item">
+          <div class="colab-name">${f}</div>
+          <span class="estado-chip ${chipClass}">${estadoTxt}</span>
+        </div>`;
+    }).join('');
+
+    // Refleja el mes real vigente (automático) en las etiquetas generales de la app
+    document.getElementById('mesActual').textContent = mesAutoVisible;
+    document.getElementById('mesAdminLabel').textContent = mesAutoVisible;
+  } catch (e) {
+    cont.innerHTML = '<div class="alerta alerta-error">No se pudo consultar el estado (revisa el Apps Script).</div>';
   }
 }
 
