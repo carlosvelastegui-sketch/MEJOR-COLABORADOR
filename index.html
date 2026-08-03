@@ -699,6 +699,28 @@
 
     <!-- TAB CLAVES -->
     <div id="adminConfig" class="hidden">
+      <div class="paso-header">
+        <div class="paso-num">📅</div>
+        <div class="paso-titulo">Período de evaluación activo</div>
+      </div>
+      <div class="alerta alerta-info">
+        Mes activo ahora mismo: <b id="mesActivoLabel">cargando…</b><br>
+        Mientras un mes esté activo, todas las evaluaciones que se registren (y el control de
+        "ya voté") quedan guardadas bajo ese mes — sin importar la fecha real del calendario.
+        Úsalo para <b>reabrir un mes anterior</b> y que la gente vuelva a evaluar. Elige
+        "Automático" para volver a que el sistema use el mes calendario real.
+      </div>
+      <div class="input-group">
+        <label class="input-label">Selecciona el mes que quieres activar</label>
+        <select class="select-field" id="selMesActivo">
+          <option value="">Automático (mes actual del sistema)</option>
+        </select>
+      </div>
+      <button class="btn btn-dorado" onclick="guardarMesActivo()">💾 Activar este mes</button>
+      <div id="mesActivoStatus" class="text-sm mt-12"></div>
+
+      <div class="divider"></div>
+
       <div class="alerta alerta-info">Cambia las contraseñas de acceso por finca. Los cambios se guardan inmediatamente.</div>
       <div class="divider"></div>
 
@@ -846,6 +868,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   await cargarClavesDesdeServidor();
   FINCAS = Object.keys(PASS_FINCAS);
   poblarSelectsFinca();
+
+  // Consultar el mes activo real (puede ser un mes reabierto por el admin,
+  // no necesariamente el mes calendario actual)
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=configMes');
+    const json = await resp.json();
+    if (json.mes) {
+      const mesVisible = capitalizar(json.mes);
+      document.getElementById('mesActual').textContent = mesVisible;
+      document.getElementById('mesAdminLabel').textContent = mesVisible;
+    }
+  } catch (e) { /* se queda con el mes local calculado arriba */ }
 
   // Inicializar colaboradores por defecto si no existen
   FINCAS.forEach(f => {
@@ -1501,8 +1535,82 @@ function tabAdmin(tab) {
   });
   document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
   document.getElementById('tabAdmin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-  if (tab === 'config') mostrarClaveActuales();
+  if (tab === 'config') { mostrarClaveActuales(); cargarMesActivoDesdeServidor(); }
   if (tab === 'estado') cargarEstadoGlobal();
+}
+
+// ─────────────────────────────────────────────
+// PERÍODO DE EVALUACIÓN ACTIVO (reabrir un mes anterior)
+// ─────────────────────────────────────────────
+// OJO: el backend (getMesActual) genera y compara los meses en MINÚSCULAS
+// (ej. "julio 2026"). Por eso el VALUE de cada opción va en minúsculas —
+// así "julio 2026" del backend siempre calza exacto con lo que manda esta
+// app— y solo el texto que ve el admin se capitaliza para que se lea bien.
+const MESES_NOMBRES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function capitalizar(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+// Genera los últimos 14 meses (incluye el actual) como {value, label},
+// para que el admin pueda elegir cualquiera como período a reabrir.
+function mesesDisponiblesParaActivar() {
+  const opciones = [];
+  const hoy = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const value = MESES_NOMBRES[d.getMonth()] + ' ' + d.getFullYear();
+    opciones.push({ value, label: capitalizar(value) });
+  }
+  return opciones;
+}
+
+function poblarSelectMesActivo(mesActivoServidor) {
+  const sel = document.getElementById('selMesActivo');
+  const opciones = mesesDisponiblesParaActivar();
+  sel.innerHTML = '<option value="">Automático (mes actual del sistema)</option>' +
+    opciones.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  // Si el servidor tiene un mes activo forzado (distinto al automático), lo pre-selecciona
+  const valorNormalizado = (mesActivoServidor || '').toLowerCase();
+  if (valorNormalizado && opciones.some(o => o.value === valorNormalizado)) {
+    sel.value = valorNormalizado;
+  } else {
+    sel.value = '';
+  }
+}
+
+async function cargarMesActivoDesdeServidor() {
+  const label = document.getElementById('mesActivoLabel');
+  try {
+    const url = SCRIPT_URL + '?action=configMes';
+    const resp = await fetch(url);
+    const json = await resp.json();
+    const mes = json.mes || (MESES_NOMBRES[new Date().getMonth()] + ' ' + new Date().getFullYear());
+    const mesVisible = capitalizar(mes);
+    label.textContent = mesVisible + (json.esAutomatico === false ? '  ⚠️ (forzado manualmente)' : '  (automático)');
+    poblarSelectMesActivo(json.esAutomatico === false ? mes : '');
+    // Refleja también el mes real vigente en el resto de la app
+    document.getElementById('mesActual').textContent = mesVisible;
+    document.getElementById('mesAdminLabel').textContent = mesVisible;
+  } catch (e) {
+    label.textContent = 'No se pudo consultar (revisa el Apps Script)';
+    poblarSelectMesActivo('');
+  }
+}
+
+async function guardarMesActivo() {
+  const mesElegido = document.getElementById('selMesActivo').value; // '' = automático, ya viene en minúsculas
+  const status = document.getElementById('mesActivoStatus');
+  status.textContent = 'Guardando…';
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ tipo: 'guardarMesActivo', mes: mesElegido, codigoSolicitante: estado.votante || '' })
+    });
+    status.textContent = mesElegido
+      ? '✅ Listo. Ahora todas las evaluaciones se guardan como "' + capitalizar(mesElegido) + '".'
+      : '✅ Listo. Vuelto al modo automático (mes actual del sistema).';
+    await cargarMesActivoDesdeServidor();
+  } catch (e) {
+    status.textContent = '⚠️ No se pudo guardar. Verifica tu conexión o el Apps Script.';
+  }
 }
 
 async function cargarEstadoGlobal() {
