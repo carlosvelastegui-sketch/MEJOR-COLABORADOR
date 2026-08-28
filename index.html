@@ -1133,14 +1133,24 @@ async function renderEstadoVotaciones() {
   // Refrescar la lista de colaboradores por si el servidor tiene cambios
   await cargarColabsDesdeSheet(finca);
 
+  // Mes activo de ESTA finca (respeta si el admin la reabrió a un mes anterior)
+  let mesFinca = '';
+  try {
+    const respMes = await fetch(SCRIPT_URL + '?action=configMes&finca=' + encodeURIComponent(finca));
+    const jsonMes = await respMes.json();
+    mesFinca = (jsonMes.mes || '').toString().trim().toLowerCase();
+  } catch (e) { /* si falla, no se filtra por mes (comportamiento previo) */ }
+
   let votaron = [];
   try {
-    const url = SCRIPT_URL + '?action=votantes';
-    const resp = await fetch(url);
-    const json = await resp.json();
-    votaron = (json.votantes || [])
-      .filter(v => v.finca === finca)
-      .map(v => v.nombre);
+    const votos = await cargarVotosDesdeSheet();
+    votaron = [...new Set(
+      (votos || [])
+        .filter(v => v.finca === finca)
+        .filter(v => !mesFinca || _extraerMesVoto(v) === mesFinca)
+        .map(v => (v.votante || '').trim())
+        .filter(Boolean)
+    )];
   } catch (e) {
     // Si el servidor no responde, usar el respaldo local de este dispositivo
     votaron = estado.yaVotaron[finca] || [];
@@ -1506,10 +1516,17 @@ function renderInforme(resultados) {
       <div class="informe-finca-title">🌹 ${finca}</div>
 
       <div class="ganador-card" style="margin-bottom:10px;padding:14px 16px;">
+        ${mejorFinca.prom >= 4 ? `
         <div class="ganador-emoji" style="font-size:28px">🏆</div>
         <div class="ganador-label">Mejor colaborador</div>
         <div class="ganador-nombre" style="font-size:17px">${mejorFinca.nombre}</div>
         <div class="ganador-finca">Promedio: ${mejorFinca.prom} / 5</div>
+        ` : `
+        <div class="ganador-emoji" style="font-size:28px">⚠️</div>
+        <div class="ganador-label">Mejor colaborador</div>
+        <div class="ganador-nombre" style="font-size:15px">No hay mejor colaborador este mes</div>
+        <div class="ganador-finca">El puntaje más alto (${mejorFinca.nombre} · ${mejorFinca.prom}/5) no alcanza el mínimo de 4/5</div>
+        `}
       </div>
 
       ${ranking.length > 1 ? `
@@ -1693,23 +1710,32 @@ async function cargarEstadoGlobal() {
       await cargarColabsDesdeSheet(finca);
     }
 
-    const url = SCRIPT_URL + '?action=votantes';
-    const resp = await fetch(url);
-    const json = await resp.json();
-    const votantes = json.votantes || [];
+    // Mes activo por finca (automático o reabierto) — para no mezclar votos de otros meses
+    let mesAutomatico = '';
+    let overrides = {};
+    try {
+      const respMeses = await fetch(SCRIPT_URL + '?action=mesesActivos');
+      const jsonMeses = await respMeses.json();
+      mesAutomatico = (jsonMeses.mesAutomatico || '').toString().trim().toLowerCase();
+      overrides = jsonMeses.overrides || {};
+    } catch (e) { /* si falla, se compara solo por finca (comportamiento previo) */ }
+
+    // Votos completos (cada voto trae el mes real en que quedó registrado)
+    const votos = await cargarVotosDesdeSheet() || [];
 
     container.innerHTML = '';
 
-    // Agrupar votantes por finca
-    const porFinca = {};
-    votantes.forEach(v => {
-      if (!porFinca[v.finca]) porFinca[v.finca] = [];
-      porFinca[v.finca].push(v.nombre);
-    });
-
     FINCAS.forEach(finca => {
+      const mesFinca = (overrides[finca] || mesAutomatico || '').toString().trim().toLowerCase();
+
       const todos = (estado.colaboradores[finca] || []);
-      const votaron = porFinca[finca] || [];
+      const votaron = [...new Set(
+        votos
+          .filter(v => v.finca === finca)
+          .filter(v => !mesFinca || _extraerMesVoto(v) === mesFinca)
+          .map(v => (v.votante || '').trim())
+          .filter(Boolean)
+      )];
 
       // Construir lista completa uniendo lista registrada + votantes del sheet
       const listaMostrar = [...todos];
@@ -1752,7 +1778,7 @@ async function cargarEstadoGlobal() {
       div.innerHTML = `
         <div class="informe-finca-title">
           🌹 ${finca}
-          <span style="margin-left:auto;font-size:12px;font-weight:400;color:var(--gris)">${respondieron}/${total} votaron</span>
+          <span style="margin-left:auto;font-size:12px;font-weight:400;color:var(--gris)">${respondieron}/${total} votaron${mesFinca ? ' · ' + capitalizar(mesFinca) : ''}</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         <div class="text-sm text-center" style="margin-bottom:8px">${pct}% completado</div>
@@ -2304,10 +2330,15 @@ function exportarInforme() {
         </div>
 
         <div style="display:flex;gap:8px;padding:10px;background:#F9FAFB;border:1px solid #E5E7EB;border-top:none">
-          <div style="flex:1;background:linear-gradient(135deg,#C9A84C,#e8c06a);border-radius:8px;padding:10px;color:white;text-align:center">
-            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">🏆 Mejor colaborador</div>
+          <div style="flex:1;background:${mejor.prom >= 4 ? 'linear-gradient(135deg,#C9A84C,#e8c06a)' : 'linear-gradient(135deg,#9CA3AF,#c2c7ce)'};border-radius:8px;padding:10px;color:white;text-align:center">
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:0.85">${mejor.prom >= 4 ? '🏆 Mejor colaborador' : '⚠️ Mejor colaborador'}</div>
+            ${mejor.prom >= 4 ? `
             <div style="font-size:14px;font-weight:700;margin:3px 0">${_escHtml(mejor.nombre)}</div>
             <div style="font-size:11px;opacity:0.85">Promedio: ${mejor.prom.toFixed(2)} / 5</div>
+            ` : `
+            <div style="font-size:12px;font-weight:700;margin:3px 0">No hay mejor colaborador</div>
+            <div style="font-size:10px;opacity:0.85">Puntaje más alto (${_escHtml(mejor.nombre)}: ${mejor.prom.toFixed(2)}/5) no alcanza el mínimo de 4/5</div>
+            `}
           </div>
           ${menor.nombre !== mejor.nombre ? `
           <div style="flex:1;background:#6B7280;border-radius:8px;padding:10px;color:white;text-align:center">
