@@ -2213,21 +2213,10 @@ function exportarInforme() {
   const iMaxG = paramGlobal.indexOf(Math.max(...paramGlobal));
   const iMinG = paramGlobal.indexOf(Math.min(...paramGlobal));
 
-  const rankingFincas = fincasConDatos.map(f => ({ finca: f, prom: analisisPorFinca[f].promFinca }))
-    .sort((a,b) => b.prom - a.prom);
-  const mejorFincaG = rankingFincas[0];
-  const menorFincaG = rankingFincas[rankingFincas.length - 1];
-
   const totalExcelentes = todosColabs.filter(c => c.prom >= 4).length;
   const totalRiesgo = todosColabs.filter(c => c.prom < 3).length;
   const pctExcelentes = todosColabs.length ? ((totalExcelentes / todosColabs.length) * 100).toFixed(0) : 0;
   const pctRiesgo = todosColabs.length ? ((totalRiesgo / todosColabs.length) * 100).toFixed(0) : 0;
-
-  // ── Gráfico comparativo entre fincas ──
-  const chartFincas = _svgBarrasH(
-    rankingFincas.map(r => ({ label: r.finca, valor: r.prom, destacado: r.finca === mejorFincaG.finca })),
-    { ancho: 720, anchoLabel: 190 }
-  );
 
   // ── Gráfico comparativo de competencias a nivel organización ──
   const chartParamsGlobal = _svgBarrasH(
@@ -2244,10 +2233,6 @@ function exportarInforme() {
       <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:14px 16px;background:#FAFBFC">
 
         <div style="display:flex;gap:10px;margin-bottom:16px">
-          <div style="flex:1;background:#E6F1FB;border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:20px;font-weight:700;color:#185FA5">${fincasConDatos.length}</div>
-            <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Fincas evaluadas</div>
-          </div>
           <div style="flex:1;background:#E6F1FB;border-radius:8px;padding:10px;text-align:center">
             <div style="font-size:20px;font-weight:700;color:#185FA5">${todosColabs.length}</div>
             <div style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">Colaboradores evaluados</div>
@@ -2268,10 +2253,6 @@ function exportarInforme() {
 
         <div style="display:flex;gap:16px">
           <div style="flex:1">
-            <div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px">Comparativo de promedio general por finca</div>
-            ${chartFincas}
-          </div>
-          <div style="flex:1">
             <div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px">Comparativo de competencias — toda la organización</div>
             ${chartParamsGlobal}
           </div>
@@ -2280,7 +2261,6 @@ function exportarInforme() {
         <div style="margin-top:14px;padding:12px 14px;background:white;border:1px solid #E5E7EB;border-radius:8px;font-size:11px;line-height:1.6;color:#374151">
           <strong style="color:#185FA5">Lectura del período:</strong>
           La operación registra un promedio general de <strong>${promedioGlobal.toFixed(2)} / 5</strong>, calificado como <strong>${_calificacionTexto(promedioGlobal)}</strong>.
-          La finca con mejor desempeño es <strong>${mejorFincaG.finca}</strong> (${mejorFincaG.prom.toFixed(2)} / 5)${fincasConDatos.length > 1 ? `, mientras que <strong>${menorFincaG.finca}</strong> presenta la mayor oportunidad de mejora (${menorFincaG.prom.toFixed(2)} / 5)` : ''}.
           A nivel de competencias, <strong>${PARAMETROS[iMaxG]}</strong> es la fortaleza más consistente de todo el equipo (${paramGlobal[iMaxG].toFixed(2)} / 5),
           mientras que <strong>${PARAMETROS[iMinG]}</strong> es la competencia que requiere mayor atención a nivel organizacional (${paramGlobal[iMinG].toFixed(2)} / 5).
           Del total de colaboradores evaluados, un <strong>${pctExcelentes}%</strong> se ubica en el rango de excelencia y un <strong>${pctRiesgo}%</strong> está en zona de riesgo y debería recibir seguimiento y plan de mejora individual.
@@ -2314,10 +2294,6 @@ function exportarInforme() {
       PARAMETROS.map((p, pi) => ({ label: p, valor: a.paramEquipo[pi], destacado: p === a.fortaleza })),
       { ancho: 700, anchoLabel: 190, altoFila: 22 }
     );
-
-    const vsGlobal = a.promFinca >= promedioGlobal
-      ? `por encima del promedio general de la operación (${promedioGlobal.toFixed(2)})`
-      : `por debajo del promedio general de la operación (${promedioGlobal.toFixed(2)})`;
 
     const nombresRiesgo = a.riesgo.map(r => r.nombre).join(', ');
     const nombresExcelentes = a.excelentes.map(r => r.nombre).join(', ');
@@ -2377,7 +2353,7 @@ function exportarInforme() {
 
         <div style="padding:12px 14px;background:#FAFBFC;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;font-size:11px;line-height:1.6;color:#374151">
           <strong style="color:#185FA5">Análisis — ${_escHtml(finca)}:</strong>
-          El equipo obtiene un promedio de <strong>${a.promFinca.toFixed(2)} / 5</strong>, ${vsGlobal}.
+          El equipo obtiene un promedio de <strong>${a.promFinca.toFixed(2)} / 5</strong>, calificado como <strong>${_calificacionTexto(a.promFinca)}</strong>.
           Su fortaleza principal es <strong>${a.fortaleza}</strong> (${a.fortalezaVal.toFixed(2)} / 5) y su mayor oportunidad de mejora es <strong>${a.oportunidad}</strong> (${a.oportunidadVal.toFixed(2)} / 5).
           ${a.excelentes.length ? `Se destacan por su desempeño excelente: <strong>${_escHtml(nombresExcelentes)}</strong>.` : ''}
           ${a.riesgo.length ? `Requieren seguimiento y plan de mejora: <strong>${_escHtml(nombresRiesgo)}</strong>.` : 'No se identifican colaboradores en zona de riesgo (&lt;3) en esta finca.'}
